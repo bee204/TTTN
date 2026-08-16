@@ -1,0 +1,50 @@
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+Homestead.json
+Homestead.yaml
+Thumbs.db
+/storage/logs/*.log
+/storage/framework/*
+/bootstrap/cache/*
+# MacOS swap files
+*.swp
+*.swo
+# Windows temp files
+*.tmp
+*.bak
+# Laravel IDE Helper
+/_ide_helper.php
+/_ide_helper_models.php
+# PHPUnit coverage
+coverage.xml
+.phpunit.cache
+# Composer
+composer.phar
+# Vite/webpack
+/.vite
+/.webpack
+# Misc env files
+.env.local
+.env.testing
+.env
+.env.development
+
