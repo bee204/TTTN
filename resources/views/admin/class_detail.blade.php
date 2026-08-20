@@ -98,6 +98,12 @@
     </div>
 
     <div class="action-buttons">
+        <a href="{{ route('admin.classes.attendance', $class->id) }}" class="action-btn edit-btn">
+            ✅ Điểm danh
+        </a>
+        <a href="{{ route('admin.classes.reviews', $class->id) }}" class="action-btn secondary-btn">
+            ⭐ Xem đánh giá
+        </a>
         <a href="{{ route('admin.classes.edit', $class) }}" class="action-btn edit-btn">
             ✏️ Chỉnh sửa lớp học
         </a>

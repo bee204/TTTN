@@ -16,6 +16,11 @@ class User extends Authenticatable
 
     protected $fillable = [
         'user_name',
+        'name',
+        'email',
+        'role',
+        'customer_id',
+        'teacher_id',
         'password',
     ];
 
@@ -25,5 +30,15 @@ class User extends Authenticatable
     ];
 
     public $timestamps = true;
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function teacher()
+    {
+        return $this->belongsTo(Teacher::class);
+    }
 
 }

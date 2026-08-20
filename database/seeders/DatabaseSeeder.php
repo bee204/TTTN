@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         User::updateOrCreate(
             ['user_name' => 'admin'],
-            ['password' => Hash::make('123456')]
+            ['name' => 'Administrator', 'role' => 'admin', 'password' => Hash::make('123456')]
         );
         $this->command->info('> Seeded admin user');
 

@@ -12,9 +12,21 @@ Route::get('/teachers', [WebController::class, 'teachers'])->name('teachers');
 Route::get('/teachers/{id}', [WebController::class, 'teacherDetail'])->name('teacher.detail');
 Route::get('/register', [WebController::class, 'register'])->name('register');
 Route::post('/register', [WebController::class, 'registerSubmit'])->name('register.submit');
+Route::get('/account/register', [WebController::class, 'registerAccount'])->name('account.register');
+Route::post('/account/register', [WebController::class, 'registerAccountSubmit'])->name('account.register.submit');
+Route::get('/account/login', [WebController::class, 'loginAccount'])->name('account.login');
+Route::post('/account/login', [WebController::class, 'loginAccountSubmit'])->name('account.login.submit');
+Route::post('/account/logout', [WebController::class, 'logoutAccount'])->middleware('auth')->name('account.logout');
+Route::post('/contact', [WebController::class, 'contactSend'])->name('contact.send');
 Route::get('/authors', [WebController::class, 'authors'])->name('authors');
-Route::get('/registered-classes', [WebController::class, 'registeredClasses'])->name('registered.classes');
+Route::get('/registered-classes', [WebController::class, 'registeredClasses'])->middleware('auth')->name('registered.classes');
 Route::get('/registered-classes/{id}', [WebController::class, 'registeredClassDetail'])->name('registered.class.detail');
+
+Route::prefix('teacher')->name('teacher.')->middleware(['auth', 'role:teacher'])->group(function () {
+    Route::get('/', [AdminController::class, 'teacherDashboard'])->name('dashboard');
+    Route::get('/classes/{id}/attendance', [AdminController::class, 'attendancePage'])->name('classes.attendance');
+    Route::post('/registrations/{id}/attendance', [AdminController::class, 'storeAttendance'])->name('registrations.attendance.store');
+});
 
 // Admin routes with authentication
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -28,7 +40,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });
     
     // Protected admin routes
-    Route::middleware('auth')->group(function () {
+    Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::post('/logout', [AdminController::class, 'logout'])->name('logout');
         
@@ -48,6 +60,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/classes/create', [AdminController::class, 'createClass'])->name('classes.create');
         Route::post('/classes', [AdminController::class, 'storeClass'])->name('classes.store');
         Route::get('/classes/{id}', [AdminController::class, 'classDetail'])->name('classes.detail');
+        Route::get('/classes/{id}/attendance', [AdminController::class, 'attendancePage'])->name('classes.attendance');
+        Route::post('/registrations/{id}/attendance', [AdminController::class, 'storeAttendance'])->name('registrations.attendance.store');
+        Route::get('/classes/{id}/reviews', [AdminController::class, 'reviewsPage'])->name('classes.reviews');
         Route::get('/classes/{id}/edit', [AdminController::class, 'editClass'])->name('classes.edit');
         Route::put('/classes/{id}', [AdminController::class, 'updateClass'])->name('classes.update');
         Route::delete('/classes/{id}', [AdminController::class, 'deleteClass'])->name('classes.delete');

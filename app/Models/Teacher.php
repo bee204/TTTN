@@ -22,4 +22,9 @@ class Teacher extends Model
     public function classes() {
         return $this->hasMany(YogaClass::class, 'teacher_id');
     }
+
+    public function user()
+    {
+        return $this->hasOne(User::class);
+    }
 }

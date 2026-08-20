@@ -14,7 +14,7 @@
                 @endforeach
             </div>
         @endif
-        <form id="loginForm" method="POST" action="{{ route('login.submit') }}">
+        <form id="loginForm" method="POST" action="{{ route('account.login.submit') }}">
             @csrf
             <div class="form-group">
                 <label for="email">👤 Email</label>
@@ -26,7 +26,7 @@
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">🚀 Đăng nhập</button>
         </form>
-        <p class="mt-3">Chưa có tài khoản? <a href="{{ route('register.account') }}">Đăng ký tài khoản</a></p>
+        <p class="mt-3">Chưa có tài khoản? <a href="{{ route('account.register') }}">Đăng ký tài khoản</a></p>
     </div>
 </div>
 @endsection

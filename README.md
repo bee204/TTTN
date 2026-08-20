@@ -107,6 +107,9 @@ Password: 123456
 - `GET /api/public/classes` — List classes
 - `POST /api/registrations` — Register for class
 
+### 👤 Author
+Nguyễn Trung Nghĩa  
+[GitHub](https://github.com/nguyentrungnghia1802) | [Profile](https://nguyentrungnghia1802.github.io/Profile/)
 
 </details>
 

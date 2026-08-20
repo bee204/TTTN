@@ -79,6 +79,18 @@
             <textarea id="description" name="description" rows="4" placeholder="Mô tả về kinh nghiệm, chuyên môn của giảng viên...">{{ old('description') }}</textarea>
         </div>
 
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="account_password">🔐 Mật khẩu tài khoản teacher</label>
+                <input type="password" id="account_password" name="account_password" minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="account_password_confirmation">🔐 Nhập lại mật khẩu</label>
+                <input type="password" id="account_password_confirmation" name="account_password_confirmation" minlength="6">
+            </div>
+        </div>
+        <p class="account-hint">Để trống nếu chưa muốn tạo tài khoản. Email giảng viên sẽ được dùng để đăng nhập khi tài khoản được tạo.</p>
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">
                 ✅ Tạo giảng viên

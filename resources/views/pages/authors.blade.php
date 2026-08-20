@@ -14,7 +14,11 @@
                         ? asset('img/authors/' . $leader['image'])
                         : asset('img/authors/' . Str::slug($leader['name'], '') . '.jpg');
                 @endphp
-                <img src="{{ $leaderImage }}" alt="{{ $leader['name'] }}" class="avatar-img">
+                @if(!empty($leader['image']))
+                    <img src="{{ $leaderImage }}" alt="{{ $leader['name'] }}" class="avatar-img">
+                @else
+                    <div class="avatar-fallback" aria-label="{{ $leader['name'] }}">{{ $leader['avatar'] ?? '👤' }}</div>
+                @endif
             </div>
             <div class="author-info-block">
                 <div class="author-name">{{ $leader['name'] }}</div>
@@ -33,7 +37,11 @@
                         ? asset('img/authors/' . $author['image'])
                         : asset('img/authors/' . Str::slug($author['name'], '') . '.jpg');
                 @endphp
-                <img src="{{ $authorImage }}" alt="{{ $author['name'] }}" class="avatar-img">
+                @if(!empty($author['image']))
+                    <img src="{{ $authorImage }}" alt="{{ $author['name'] }}" class="avatar-img">
+                @else
+                    <div class="avatar-fallback" aria-label="{{ $author['name'] }}">{{ $author['avatar'] ?? '👤' }}</div>
+                @endif
             </div>
             <div class="author-info-block">
                 <div class="author-name">{{ $author['name'] }}</div>
@@ -45,7 +53,7 @@
         @endforeach
     </div>
     <div class="authors-row">
-        @foreach(array_slice($authors,3,2) as $author)
+        @foreach(array_slice($authors,3) as $author)
         <div class="author-card horizontal">
             <div class="author-avatar">
                 @php
@@ -53,7 +61,11 @@
                         ? asset('img/authors/' . $author['image'])
                         : asset('img/authors/' . Str::slug($author['name'], '') . '.jpg');
                 @endphp
-                <img src="{{ $authorImage }}" alt="{{ $author['name'] }}" class="avatar-img">
+                @if(!empty($author['image']))
+                    <img src="{{ $authorImage }}" alt="{{ $author['name'] }}" class="avatar-img">
+                @else
+                    <div class="avatar-fallback" aria-label="{{ $author['name'] }}">{{ $author['avatar'] ?? '👤' }}</div>
+                @endif
             </div>
             <div class="author-info-block">
                 <div class="author-name">{{ $author['name'] }}</div>

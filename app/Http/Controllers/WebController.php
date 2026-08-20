@@ -9,6 +9,7 @@ use App\Models\Registration;
 use App\Enums\RegistrationStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class WebController extends Controller
 {
@@ -27,9 +28,12 @@ class WebController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
+        $customer = Customer::where('email', $request->email)->first();
         $user = \App\Models\User::create([
+            'user_name' => Str::before($request->email, '@') . '-' . uniqid(),
             'name' => $request->name,
             'email' => $request->email,
+            'customer_id' => $customer?->id,
             'password' => bcrypt($request->password),
             'role' => 'customer', // default role
         ]);
@@ -56,19 +60,33 @@ class WebController extends Controller
             $user = Auth::user();
             if ($user->role === 'admin') {
                 return redirect()->route('admin.dashboard');
+            } elseif ($user->role === 'teacher') {
+                return redirect()->route('teacher.dashboard');
             } else {
                 return redirect()->route('dashboard');
             }
         }
         return back()->withErrors(['email' => 'Thông tin đăng nhập không đúng!']);
     }
+
+    public function logoutAccount(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('account.login')->with('success', 'Đã đăng xuất tài khoản.');
+    }
+
     public function registeredClasses(Request $request)
     {
-        // Show only confirmed registrations. In real app, filter by logged-in user.
+        abort_unless(Auth::check(), 401);
+        $customerId = Auth::user()->customer_id;
         $registrations = Registration::with(['class.teacher'])
-                                   ->where('status', RegistrationStatus::CONFIRMED->value)
-                                   ->latest()
-                                   ->get();
+            ->where('customer_id', $customerId)
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->latest()
+            ->get();
         return view('pages.registered_classes', compact('registrations'));
     }
 
@@ -200,6 +218,22 @@ class WebController extends Controller
                 'id' => 'K23DTCN536',
                 'task' => 'Develop UI for admin site, integrate with API',
                 'image' => 'hieu.jpg'
+            ],
+            [
+                'avatar' => '👩‍💻',
+                'name' => 'Trần Thu Trang',
+                'role' => 'Thành viên phát triển',
+                'id' => '',
+                'task' => 'Tham gia phát triển và kiểm thử hệ thống',
+                'image' => null
+            ],
+            [
+                'avatar' => '👨‍💻',
+                'name' => 'Hoàng Lâm Phong',
+                'role' => 'Thành viên phát triển',
+                'id' => '',
+                'task' => 'Tham gia phát triển và hoàn thiện chức năng',
+                'image' => null
             ],
         ];
         $project = [

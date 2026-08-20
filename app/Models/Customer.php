@@ -21,4 +21,14 @@ class Customer extends Model
     public function registrations() {
         return $this->hasMany(Registration::class);
     }
+    
+    public function reviews()
+    {
+        return $this->hasMany(ClassReview::class);
+    }
+
+    public function user()
+    {
+        return $this->hasOne(User::class);
+    }
 }

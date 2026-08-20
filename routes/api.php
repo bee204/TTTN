@@ -9,6 +9,8 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\PublicCatalogController;
 use App\Http\Controllers\UnifiedRegistrationController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\ClassReviewController;
 
 Route::prefix('public')->group(function () {
     Route::get('/teachers', [PublicCatalogController::class, 'teachers']);
@@ -38,19 +40,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
 
-    Route::apiResource('teachers', TeacherController::class);
+    Route::middleware('role:admin')->group(function () {
+        Route::apiResource('teachers', TeacherController::class);
+        Route::apiResource('classes', YogaClassController::class);
+        Route::apiResource('customers', CustomerController::class);
+        Route::apiResource('registrations', RegistrationController::class);
+        Route::post('/registrations/{id}/confirm', [RegistrationController::class, 'confirm']);
+        Route::post('/registrations/{id}/cancel', [RegistrationController::class, 'cancel']);
+    });
 
+    // CN01: attendance per session and attendance summaries
+    Route::middleware('role:admin,teacher')->group(function () {
+        Route::get('/attendance/summary', [AttendanceController::class, 'summary']);
+        Route::apiResource('attendance', AttendanceController::class)->only(['index', 'store', 'update']);
+    });
 
-    Route::apiResource('classes', YogaClassController::class);
-
-
-    Route::apiResource('customers', CustomerController::class);
-
-
-    Route::apiResource('registrations', RegistrationController::class);
-
-
-    Route::post('/registrations/{id}/confirm', [RegistrationController::class, 'confirm']);
-    Route::post('/registrations/{id}/cancel', [RegistrationController::class, 'cancel']);
+    // CN02: class reviews and ranking
+    Route::get('/class-reviews/ranking', [ClassReviewController::class, 'ranking']);
+    Route::apiResource('class-reviews', ClassReviewController::class)->only(['index', 'store', 'update', 'destroy']);
 
 });

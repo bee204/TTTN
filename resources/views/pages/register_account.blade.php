@@ -3,7 +3,7 @@
 @section('content')
 <div class="auth-form-container">
     <h2>Đăng ký tài khoản</h2>
-    <form method="POST" action="{{ route('register.account.submit') }}">
+    <form method="POST" action="{{ route('account.register.submit') }}">
         @csrf
         <div class="form-group">
             <label for="name">Tên</label>

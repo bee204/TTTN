@@ -33,6 +33,11 @@ class YogaClass extends Model
     public function registrations() {
         return $this->hasMany(Registration::class, 'class_id');
     }
+    
+    public function reviews()
+    {
+        return $this->hasMany(ClassReview::class, 'class_id');
+    }
 
     // Tính số slot còn lại
     public function getAvailableSlotsAttribute() {

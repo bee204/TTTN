@@ -83,6 +83,18 @@
             <textarea id="description" name="description" rows="4" placeholder="Mô tả về kinh nghiệm, chuyên môn của giảng viên...">{{ old('description', $teacher->description) }}</textarea>
         </div>
 
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="account_password">🔐 Mật khẩu mới</label>
+                <input type="password" id="account_password" name="account_password" minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="account_password_confirmation">🔐 Nhập lại mật khẩu</label>
+                <input type="password" id="account_password_confirmation" name="account_password_confirmation" minlength="6">
+            </div>
+        </div>
+        <p class="account-hint">Nếu tài khoản teacher chưa tồn tại, nhập mật khẩu để tạo mới. Để trống để giữ nguyên mật khẩu hiện tại.</p>
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">
                 💾 Cập nhật giảng viên

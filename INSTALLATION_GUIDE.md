@@ -99,7 +99,7 @@ php -r "unlink('composer-setup.php');"
 ### 1. Clone Repository
 ```bash
 # Clone dự án từ GitHub
-git clone https://github.com/bee204/TTTN.git
+git clone https://github.com/nguyentrungnghia1802/Yoga-Website-PHP.git
 
 # Di chuyển vào thư mục dự án
 cd Yoga-Website-PHP
@@ -416,7 +416,7 @@ npm run dev
 
 ### Liên Hệ Hỗ Trợ:
 - **Email:** camtu.dev@gmail.com
-- **GitHub Issues:** https://github.com/bee204/TTTN.git/issues
+- **GitHub Issues:** https://github.com/nguyentrungnghia1802/Yoga-Website-PHP/issues
 
 ---
 

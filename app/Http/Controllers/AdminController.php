@@ -6,6 +6,8 @@ use App\Models\YogaClass;
 use App\Models\Teacher;
 use App\Models\Customer;
 use App\Models\Registration;
+use App\Models\Attendance;
+use App\Models\ClassReview;
 use App\Enums\RegistrationStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -40,7 +42,7 @@ class AdminController extends Controller
     // Authenticate only with user_name (users table does not have email column)
     $user = User::where('user_name', $request->username)->first();
 
-        if ($user && Hash::check($request->password, $user->password)) {
+        if ($user && $user->role === 'admin' && Hash::check($request->password, $user->password)) {
             Auth::login($user);
             return redirect()->route('admin.dashboard')->with('success', 'Đăng nhập thành công!');
         }
@@ -73,6 +75,21 @@ class AdminController extends Controller
                                          ->get();
 
         return view('admin.dashboard', compact('stats', 'recentRegistrations'));
+    }
+
+    public function teacherDashboard(Request $request)
+    {
+        $teacher = $request->user()->teacher;
+        abort_unless($teacher, 403, 'Tài khoản chưa được liên kết với hồ sơ giảng viên.');
+
+        $classes = YogaClass::where('teacher_id', $teacher->id)
+            ->withCount(['registrations' => function ($query) {
+                $query->where('status', RegistrationStatus::CONFIRMED->value);
+            }])
+            ->latest()
+            ->get();
+
+        return view('teacher.dashboard', compact('teacher', 'classes'));
     }
 
     // Registration Management
@@ -347,7 +364,17 @@ class AdminController extends Controller
             'description' => 'nullable|string|max:255',
         ]);
 
-        YogaClass::create($request->all());
+        $data = $request->only([
+            'name', 'teacher_id', 'lich_hoc', 'start_time', 'end_time',
+            'start_date', 'end_date', 'quantity', 'price', 'location', 'description',
+        ]);
+        if ($this->teacherHasScheduleConflict($data)) {
+            return back()->withInput()->withErrors([
+                'teacher_id' => 'Giảng viên đã có lớp bị trùng ngày hoặc khung giờ trong khoảng thời gian này.',
+            ]);
+        }
+
+        YogaClass::create($data);
         
         return redirect()->route('admin.classes')->with('success', 'Đã tạo lớp học thành công!');
     }
@@ -355,12 +382,59 @@ class AdminController extends Controller
     public function classDetail($id)
     {
         $class = YogaClass::with('teacher')->findOrFail($id);
-        $registrations = Registration::with('customer')
+        $registrations = Registration::with(['customer', 'attendances' => fn ($query) => $query->latest('attendance_date')])
                                    ->where('class_id', $id)
                                    ->where('status', RegistrationStatus::CONFIRMED->value)
                                    ->get();
         
         return view('admin.class_detail', compact('class', 'registrations'));
+    }
+
+    public function attendancePage($id)
+    {
+        $class = YogaClass::findOrFail($id);
+        if (request()->user()->role === 'teacher') {
+            abort_unless((int) request()->user()->teacher_id === (int) $class->teacher_id, 403);
+        }
+        $registrations = Registration::with(['customer', 'attendances' => fn ($query) => $query->latest('attendance_date')])
+            ->where('class_id', $id)
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->get();
+
+        return view('admin.attendance', compact('class', 'registrations'));
+    }
+
+    public function storeAttendance(Request $request, $registrationId)
+    {
+        $data = $request->validate([
+            'attendance_date' => 'required|date',
+            'status' => 'required|in:PRESENT,LATE,ABSENT,EXCUSED',
+            'note' => 'nullable|string|max:255',
+        ]);
+        $registration = Registration::with('class')->findOrFail($registrationId);
+        if ($request->user()->role === 'teacher') {
+            abort_unless((int) $request->user()->teacher_id === (int) $registration->class->teacher_id, 403);
+        }
+        if ($registration->status !== RegistrationStatus::CONFIRMED) {
+            return back()->with('error', 'Chỉ có thể điểm danh học viên đã được duyệt.');
+        }
+        if ($data['attendance_date'] < $registration->class->start_date->format('Y-m-d') || $data['attendance_date'] > $registration->class->end_date->format('Y-m-d')) {
+            return back()->with('error', 'Ngày điểm danh phải nằm trong thời gian của lớp học.');
+        }
+
+        Attendance::updateOrCreate(
+            ['registration_id' => $registration->id, 'attendance_date' => $data['attendance_date']],
+            ['status' => $data['status'], 'note' => $data['note'] ?? null]
+        );
+
+        return back()->with('success', 'Đã lưu điểm danh.');
+    }
+
+    public function reviewsPage($id)
+    {
+        $class = YogaClass::findOrFail($id);
+        $reviews = ClassReview::with('customer')->where('class_id', $id)->latest()->get();
+        return view('admin.class_reviews', compact('class', 'reviews'));
     }
 
     public function editClass($id)
@@ -387,7 +461,17 @@ class AdminController extends Controller
         ]);
 
         $class = YogaClass::findOrFail($id);
-        $class->update($request->all());
+        $data = $request->only([
+            'name', 'teacher_id', 'lich_hoc', 'start_time', 'end_time',
+            'start_date', 'end_date', 'quantity', 'price', 'location', 'description',
+        ]);
+        if ($this->teacherHasScheduleConflict($data, $class->id)) {
+            return back()->withInput()->withErrors([
+                'teacher_id' => 'Giảng viên đã có lớp bị trùng ngày hoặc khung giờ trong khoảng thời gian này.',
+            ]);
+        }
+
+        $class->update($data);
         
         return redirect()->route('admin.classes')->with('success', 'Đã cập nhật lớp học thành công!');
     }
@@ -406,6 +490,31 @@ class AdminController extends Controller
         $class->delete();
         
         return redirect()->route('admin.classes')->with('success', 'Đã xóa lớp học thành công!');
+    }
+
+    private function teacherHasScheduleConflict(array $data, ?int $exceptClassId = null): bool
+    {
+        $days = collect(preg_split('/[^a-z]+/i', strtolower($data['lich_hoc'] ?? '')))
+            ->filter()
+            ->values();
+        $classes = YogaClass::where('teacher_id', $data['teacher_id'])
+            ->when($exceptClassId, fn ($query) => $query->whereKey('!=', $exceptClassId))
+            ->get();
+
+        foreach ($classes as $class) {
+            $existingDays = collect(preg_split('/[^a-z]+/i', strtolower($class->lich_hoc ?? '')))->filter();
+            $sameDay = $days->intersect($existingDays)->isNotEmpty();
+            $dateOverlap = $data['start_date'] <= $class->end_date->format('Y-m-d')
+                && $data['end_date'] >= $class->start_date->format('Y-m-d');
+            $timeOverlap = $data['start_time'] < $class->end_time->format('H:i:s')
+                && $data['end_time'] > $class->start_time->format('H:i:s');
+
+            if ($sameDay && $dateOverlap && $timeOverlap) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Customer Management
@@ -536,12 +645,14 @@ class AdminController extends Controller
             'exp_year' => 'required|integer|min:0',
             'description' => 'required|string|max:255',
             'avatar' => 'nullable|string|max:255',
+            'account_password' => 'nullable|string|min:6|confirmed',
         ]);
 
         $teacherData = $request->all();
         $teacherData['avatar'] = $request->avatar ?? 'default-avatar.jpg'; // Giá trị mặc định
         
-        Teacher::create($teacherData);
+        $teacher = Teacher::create($teacherData);
+        $this->syncTeacherAccount($teacher, $request->input('account_password'));
         
         return redirect()->route('admin.teachers')->with('success', 'Đã tạo giảng viên thành công!');
     }
@@ -570,12 +681,40 @@ class AdminController extends Controller
             'exp_year' => 'required|integer|min:0',
             'description' => 'required|string|max:255',
             'avatar' => 'nullable|string|max:255',
+            'account_password' => 'nullable|string|min:6|confirmed',
         ]);
 
         $teacher = Teacher::findOrFail($id);
         $teacher->update($request->all());
+        $this->syncTeacherAccount($teacher, $request->input('account_password'));
         
         return redirect()->route('admin.teachers')->with('success', 'Đã cập nhật giảng viên thành công!');
+    }
+
+    private function syncTeacherAccount(Teacher $teacher, ?string $password = null): void
+    {
+        $user = User::where('teacher_id', $teacher->id)
+            ->orWhere(function ($query) use ($teacher) {
+                $query->where('email', $teacher->email)->whereNull('teacher_id');
+            })
+            ->first();
+
+        if (!$user && !$password) {
+            return;
+        }
+
+        $user ??= new User();
+        $user->fill([
+            'user_name' => $teacher->email,
+            'name' => $teacher->name,
+            'email' => $teacher->email,
+            'role' => 'teacher',
+            'teacher_id' => $teacher->id,
+        ]);
+        if ($password) {
+            $user->password = Hash::make($password);
+        }
+        $user->save();
     }
 
     public function deleteTeacher($id)

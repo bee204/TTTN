@@ -29,4 +29,9 @@ class Registration extends Model
     public function class() {
         return $this->belongsTo(YogaClass::class, 'class_id');
     }
+    
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
 }

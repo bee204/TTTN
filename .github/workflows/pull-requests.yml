@@ -1,0 +1,12 @@
+name: Pull Requests
+
+# Disabled workflow: Block invalid PRs
+on:
+  workflow_dispatch:
+
+jobs:
+  disabled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: This workflow is disabled
+        run: echo "This workflow is disabled."
