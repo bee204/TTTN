@@ -54,6 +54,88 @@ class AccountAndScheduleTest extends TestCase
         $this->assertAuthenticatedAs($teacherUser);
     }
 
+    public function test_teacher_login_page_does_not_show_customer_account_information(): void
+    {
+        $customerUser = User::factory()->create([
+            'role' => 'customer',
+            'name' => 'Customer Private Name',
+        ]);
+
+        $this->actingAs($customerUser)->get('/teacher/login')
+            ->assertOk()
+            ->assertDontSee('Customer Private Name')
+            ->assertDontSee('Thông tin tài khoản');
+    }
+
+    public function test_teacher_login_page_does_not_offer_account_registration(): void
+    {
+        $this->get('/teacher/login')
+            ->assertOk()
+            ->assertDontSee('Đăng ký tài khoản');
+    }
+
+    public function test_teacher_panel_dropdown_only_offers_logout(): void
+    {
+        $teacher = Teacher::factory()->create();
+        $teacherUser = User::factory()->create([
+            'role' => 'teacher',
+            'teacher_id' => $teacher->id,
+        ]);
+
+        $this->actingAs($teacherUser)->get('/teacher')
+            ->assertOk()
+            ->assertDontSee('🏠 Trang chính')
+            ->assertSee('🚪 Đăng xuất');
+    }
+
+    public function test_teacher_can_view_reviews_only_for_owned_classes(): void
+    {
+        $teacher = Teacher::factory()->create();
+        $otherTeacher = Teacher::factory()->create();
+        $teacherUser = User::factory()->create([
+            'role' => 'teacher',
+            'teacher_id' => $teacher->id,
+        ]);
+        $ownedClass = YogaClass::factory()->create(['teacher_id' => $teacher->id]);
+        $otherClass = YogaClass::factory()->create(['teacher_id' => $otherTeacher->id]);
+
+        $this->actingAs($teacherUser)->get('/teacher/classes/'.$ownedClass->id.'/reviews')
+            ->assertOk()
+            ->assertSee(route('teacher.dashboard'));
+        $this->actingAs($teacherUser)->get('/teacher/classes/'.$otherClass->id.'/reviews')
+            ->assertForbidden();
+    }
+
+    public function test_teacher_can_view_details_only_for_owned_classes(): void
+    {
+        $teacher = Teacher::factory()->create();
+        $otherTeacher = Teacher::factory()->create();
+        $teacherUser = User::factory()->create([
+            'role' => 'teacher',
+            'teacher_id' => $teacher->id,
+        ]);
+        $ownedClass = YogaClass::factory()->create(['teacher_id' => $teacher->id]);
+        $otherClass = YogaClass::factory()->create(['teacher_id' => $otherTeacher->id]);
+
+        $this->actingAs($teacherUser)->get('/teacher/classes/'.$ownedClass->id)
+            ->assertOk()
+            ->assertSee($ownedClass->name)
+            ->assertSee(route('teacher.dashboard'));
+        $this->actingAs($teacherUser)->get('/teacher/classes/'.$otherClass->id)
+            ->assertForbidden();
+    }
+
+    public function test_teacher_logout_redirects_to_teacher_login(): void
+    {
+        $teacherUser = User::factory()->create(['role' => 'teacher']);
+
+        $this->actingAs($teacherUser)->post(route('account.logout'))
+            ->assertRedirect(route('teacher.login'))
+            ->assertSessionHas('success');
+
+        $this->assertGuest();
+    }
+
     public function test_student_history_only_contains_the_logged_in_student_registrations(): void
     {
         $student = Customer::factory()->create();

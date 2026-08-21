@@ -385,6 +385,9 @@ class AdminController extends Controller
     public function classDetail($id)
     {
         $class = YogaClass::with('teacher')->findOrFail($id);
+        if (request()->user()->role === 'teacher') {
+            abort_unless((int) request()->user()->teacher_id === (int) $class->teacher_id, 403);
+        }
         $registrations = Registration::with(['customer', 'attendances' => fn ($query) => $query->latest('attendance_date')])
                                    ->where('class_id', $id)
                                    ->where('status', RegistrationStatus::CONFIRMED->value)
@@ -440,6 +443,9 @@ class AdminController extends Controller
     public function reviewsPage($id)
     {
         $class = YogaClass::findOrFail($id);
+        if (request()->user()->role === 'teacher') {
+            abort_unless((int) request()->user()->teacher_id === (int) $class->teacher_id, 403);
+        }
         $reviews = ClassReview::with('customer')->where('class_id', $id)->latest()->get();
         return view('admin.class_reviews', compact('class', 'reviews'));
     }

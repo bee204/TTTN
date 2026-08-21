@@ -29,7 +29,9 @@ Route::post('/registered-classes/{id}/review', [WebController::class, 'submitCla
 
 Route::prefix('teacher')->name('teacher.')->middleware(['auth', 'role:teacher'])->group(function () {
     Route::get('/', [AdminController::class, 'teacherDashboard'])->name('dashboard');
+    Route::get('/classes/{id}', [AdminController::class, 'classDetail'])->name('classes.detail');
     Route::get('/classes/{id}/attendance', [AdminController::class, 'attendancePage'])->name('classes.attendance');
+    Route::get('/classes/{id}/reviews', [AdminController::class, 'reviewsPage'])->name('classes.reviews');
     Route::post('/registrations/{id}/attendance', [AdminController::class, 'storeAttendance'])->name('registrations.attendance.store');
 });
 

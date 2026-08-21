@@ -51,7 +51,9 @@
                             👤 {{ Auth::user()->email ?? Auth::user()->user_name ?? Auth::user()->name }} ▼
                         </button>
                         <div class="dropdown-menu" id="dropdown-menu">
-                            <a href="{{ Auth::user()->role === 'teacher' ? route('teacher.dashboard') : route('dashboard') }}">🏠 Trang chính</a>
+                            @if(Auth::user()->role !== 'teacher')
+                                <a href="{{ route('dashboard') }}">🏠 Trang chính</a>
+                            @endif
                             <form method="POST" action="{{ route('account.logout') }}">
                                 @csrf
                                 <button type="submit">🚪 Đăng xuất</button>

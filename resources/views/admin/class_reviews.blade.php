@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="page-header">
-    <a href="{{ route('admin.classes.detail', $class->id) }}">← Quay lại lớp học</a>
+    <a href="{{ Auth::user()->role === 'teacher' ? route('teacher.dashboard') : route('admin.classes.detail', $class->id) }}">← Quay lại lớp học</a>
     <h1>Đánh giá: {{ $class->name }}</h1>
     <div class="rating-summary">
         <span class="summary-stars">{{ str_repeat('★', (int) round($reviews->avg('rating') ?? 0)) }}{{ str_repeat('☆', 5 - (int) round($reviews->avg('rating') ?? 0)) }}</span>

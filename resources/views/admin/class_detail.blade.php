@@ -5,7 +5,7 @@
 @section('content')
 <div class="page-header">
     <div class="header-navigation">
-        <a href="{{ route('admin.classes') }}" class="back-btn">
+        <a href="{{ Auth::user()->role === 'teacher' ? route('teacher.dashboard') : route('admin.classes') }}" class="back-btn">
             ← Quay lại danh sách
         </a>
     </div>
@@ -101,15 +101,17 @@
         @if($class->start_date->isFuture())
             <button type="button" class="action-btn edit-btn" disabled>⏳ Chưa bắt đầu</button>
         @else
-            <a href="{{ route('admin.classes.attendance', $class->id) }}" class="action-btn edit-btn">✅ Điểm danh</a>
+            <a href="{{ Auth::user()->role === 'teacher' ? route('teacher.classes.attendance', $class->id) : route('admin.classes.attendance', $class->id) }}" class="action-btn edit-btn">✅ Điểm danh</a>
         @endif
-        <a href="{{ route('admin.classes.reviews', $class->id) }}" class="action-btn secondary-btn">
+        <a href="{{ Auth::user()->role === 'teacher' ? route('teacher.classes.reviews', $class->id) : route('admin.classes.reviews', $class->id) }}" class="action-btn secondary-btn">
             ⭐ Xem đánh giá
         </a>
-        <a href="{{ route('admin.classes.edit', $class) }}" class="action-btn edit-btn">
-            ✏️ Chỉnh sửa lớp học
-        </a>
-        <a href="{{ route('admin.classes') }}" class="action-btn secondary-btn">
+        @if(Auth::user()->role !== 'teacher')
+            <a href="{{ route('admin.classes.edit', $class) }}" class="action-btn edit-btn">
+                ✏️ Chỉnh sửa lớp học
+            </a>
+        @endif
+        <a href="{{ Auth::user()->role === 'teacher' ? route('teacher.dashboard') : route('admin.classes') }}" class="action-btn secondary-btn">
             📋 Quay lại danh sách
         </a>
     </div>

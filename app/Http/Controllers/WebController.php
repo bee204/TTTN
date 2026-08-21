@@ -110,11 +110,13 @@ class WebController extends Controller
 
     public function logoutAccount(Request $request)
     {
+        $isTeacher = Auth::user()?->role === 'teacher';
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('account.login')->with('success', 'Đã đăng xuất tài khoản.');
+        return redirect()->route($isTeacher ? 'teacher.login' : 'account.login')
+            ->with('success', 'Đã đăng xuất tài khoản.');
     }
 
     public function registeredClasses(Request $request)

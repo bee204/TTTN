@@ -7,6 +7,7 @@
 			<li><a href="{{ route('teachers') }}" class="{{ request()->routeIs('teachers') || request()->routeIs('teacher.detail') ? 'active' : '' }}">👨‍🏫 Giáo viên</a></li>
 			<li><a href="{{ route('register') }}" class="{{ request()->routeIs('register') ? 'active' : '' }}">📝 Đăng ký lớp học</a></li>
 		</ul>
+		@if(!request()->routeIs('teacher.login'))
 		<div class="account-menu">
 			@if(Auth::check())
 				<button type="button" class="account-trigger" onclick="toggleDropdown()" aria-haspopup="true" aria-controls="dropdown-menu">
@@ -24,6 +25,7 @@
 				<a class="account-trigger guest-account" href="{{ route('account.login') }}">🔐 Đăng nhập</a>
 			@endif
 		</div>
+		@endif
 	</div>
 </nav>
 

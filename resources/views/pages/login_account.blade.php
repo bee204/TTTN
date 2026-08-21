@@ -29,7 +29,9 @@
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">🚀 Đăng nhập</button>
         </form>
-        <p class="mt-3">Chưa có tài khoản? <a href="{{ route('account.register') }}">Đăng ký tài khoản</a></p>
+        @if(($portal ?? request('portal')) !== 'teacher')
+            <p class="mt-3">Chưa có tài khoản? <a href="{{ route('account.register') }}">Đăng ký tài khoản</a></p>
+        @endif
     </div>
 </div>
 @endsection
