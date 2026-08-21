@@ -21,7 +21,7 @@
             <small>{{ $registration->customer->email }}</small>
         </div>
         <label>Ngày học
-            <input type="date" name="attendance_date" value="{{ old('attendance_date', now()->format('Y-m-d')) }}" min="{{ $class->start_date->format('Y-m-d') }}" max="{{ $class->end_date->format('Y-m-d') }}" required>
+            <input type="date" name="attendance_date" value="{{ old('attendance_date', now()->format('Y-m-d')) }}" min="{{ $class->start_date->format('Y-m-d') }}" max="{{ min($class->end_date->format('Y-m-d'), now()->format('Y-m-d')) }}" required>
         </label>
         <label>Trạng thái
             <select name="status">
@@ -30,7 +30,6 @@
                 @endforeach
             </select>
         </label>
-        <input type="text" name="note" placeholder="Ghi chú">
         <button type="submit">Lưu</button>
         <div class="history">
             @foreach($registration->attendances->take(5) as $attendance)

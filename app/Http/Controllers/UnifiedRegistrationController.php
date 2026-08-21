@@ -60,6 +60,19 @@ class UnifiedRegistrationController extends Controller
                 }
             }
 
+            $alreadyRegistered = Registration::where('customer_id', $customer->id)
+                ->where('class_id', $class->id)
+                ->whereIn('status', [
+                    RegistrationStatus::PENDING->value,
+                    RegistrationStatus::CONFIRMED->value,
+                ])
+                ->exists();
+            if ($alreadyRegistered) {
+                return response()->json([
+                    'message' => 'Customer has already registered for this class.',
+                ], 422);
+            }
+
             $reg = Registration::create([
                 'customer_id'    => $customer->id,
                 'class_id'       => $class->id,

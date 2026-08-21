@@ -53,7 +53,17 @@
         </div>
         <div style="margin-top: 10px; display: flex; gap: 10px;">
             <a href="{{ route('class.detail', $class->id) }}" class="btn" style="flex: 1; background: #f8f9fa; color: #495057; text-align: center; white-space: nowrap; padding: 8px 12px;">👁️ Xem chi tiết</a>
-            @if($class->is_full)
+            @if(isset($registrationStatuses[$class->id]))
+                <button class="btn" style="flex: 1; text-align: center; white-space: nowrap; padding: 8px 12px; background: #6c757d; color: white; cursor: not-allowed;" disabled>
+                    @if($registrationStatuses[$class->id]['has_attendance'])
+                        🔵 Đang học
+                    @elseif($registrationStatuses[$class->id]['status'] === 'CONFIRMED')
+                        ✅ Đã duyệt
+                    @else
+                        ⏳ Đang chờ duyệt
+                    @endif
+                </button>
+            @elseif($class->is_full)
                 <button class="btn" style="flex: 1; text-align: center; white-space: nowrap; padding: 8px 12px; background: #6c757d; color: white; cursor: not-allowed;" disabled>📝 Đã hết chỗ</button>
             @else
                 <a href="{{ route('register', ['class_id' => $class->id]) }}" class="btn btn-primary" style="flex: 1; text-align: center; white-space: nowrap; padding: 8px 12px;">📝 Đăng ký</a>

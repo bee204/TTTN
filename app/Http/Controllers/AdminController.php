@@ -368,6 +368,9 @@ class AdminController extends Controller
             'name', 'teacher_id', 'lich_hoc', 'start_time', 'end_time',
             'start_date', 'end_date', 'quantity', 'price', 'location', 'description',
         ]);
+        if ($this->classNameExists($data['name'])) {
+            return back()->withInput()->withErrors(['name' => 'Tên lớp học đã tồn tại. Vui lòng chọn tên khác.']);
+        }
         if ($this->teacherHasScheduleConflict($data)) {
             return back()->withInput()->withErrors([
                 'teacher_id' => 'Giảng viên đã có lớp bị trùng ngày hoặc khung giờ trong khoảng thời gian này.',
@@ -396,6 +399,9 @@ class AdminController extends Controller
         if (request()->user()->role === 'teacher') {
             abort_unless((int) request()->user()->teacher_id === (int) $class->teacher_id, 403);
         }
+        if ($class->start_date->isFuture()) {
+            return redirect()->back()->with('error', 'Chưa đến ngày bắt đầu lớp học, chưa thể điểm danh.');
+        }
         $registrations = Registration::with(['customer', 'attendances' => fn ($query) => $query->latest('attendance_date')])
             ->where('class_id', $id)
             ->where('status', RegistrationStatus::CONFIRMED->value)
@@ -409,7 +415,6 @@ class AdminController extends Controller
         $data = $request->validate([
             'attendance_date' => 'required|date',
             'status' => 'required|in:PRESENT,LATE,ABSENT,EXCUSED',
-            'note' => 'nullable|string|max:255',
         ]);
         $registration = Registration::with('class')->findOrFail($registrationId);
         if ($request->user()->role === 'teacher') {
@@ -418,13 +423,15 @@ class AdminController extends Controller
         if ($registration->status !== RegistrationStatus::CONFIRMED) {
             return back()->with('error', 'Chỉ có thể điểm danh học viên đã được duyệt.');
         }
-        if ($data['attendance_date'] < $registration->class->start_date->format('Y-m-d') || $data['attendance_date'] > $registration->class->end_date->format('Y-m-d')) {
-            return back()->with('error', 'Ngày điểm danh phải nằm trong thời gian của lớp học.');
+        if ($data['attendance_date'] < $registration->class->start_date->format('Y-m-d')
+            || $data['attendance_date'] > $registration->class->end_date->format('Y-m-d')
+            || $data['attendance_date'] > now()->toDateString()) {
+            return back()->with('error', 'Ngày điểm danh phải nằm trong thời gian lớp học và không được là ngày tương lai.');
         }
 
         Attendance::updateOrCreate(
             ['registration_id' => $registration->id, 'attendance_date' => $data['attendance_date']],
-            ['status' => $data['status'], 'note' => $data['note'] ?? null]
+            ['status' => $data['status']]
         );
 
         return back()->with('success', 'Đã lưu điểm danh.');
@@ -465,6 +472,9 @@ class AdminController extends Controller
             'name', 'teacher_id', 'lich_hoc', 'start_time', 'end_time',
             'start_date', 'end_date', 'quantity', 'price', 'location', 'description',
         ]);
+        if ($this->classNameExists($data['name'], $class->id)) {
+            return back()->withInput()->withErrors(['name' => 'Tên lớp học đã tồn tại. Vui lòng chọn tên khác.']);
+        }
         if ($this->teacherHasScheduleConflict($data, $class->id)) {
             return back()->withInput()->withErrors([
                 'teacher_id' => 'Giảng viên đã có lớp bị trùng ngày hoặc khung giờ trong khoảng thời gian này.',
@@ -515,6 +525,13 @@ class AdminController extends Controller
         }
 
         return false;
+    }
+
+    private function classNameExists(string $name, ?int $exceptClassId = null): bool
+    {
+        return YogaClass::whereRaw('LOWER(name) = ?', [strtolower(trim($name))])
+            ->when($exceptClassId, fn ($query) => $query->where('id', '!=', $exceptClassId))
+            ->exists();
     }
 
     // Customer Management

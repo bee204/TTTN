@@ -23,7 +23,11 @@
                 </div>
             </div>
             <div class="class-actions">
-                <a href="{{ route('teacher.classes.attendance', $class->id) }}" class="action-btn view-btn">✅ Điểm danh</a>
+                @if($class->start_date->isFuture())
+                    <button type="button" class="action-btn view-btn" disabled title="Chưa đến ngày bắt đầu lớp học">⏳ Chưa bắt đầu</button>
+                @else
+                    <a href="{{ route('teacher.classes.attendance', $class->id) }}" class="action-btn view-btn">✅ Điểm danh</a>
+                @endif
             </div>
         </div>
     @empty

@@ -4,12 +4,18 @@
 
 @section('content')
 <h1 class="page-title">📝 Lớp học đã đăng ký</h1>
+@if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
+@if(session('error')) <div class="alert alert-error">{{ session('error') }}</div> @endif
 <div class="registered-classes-list">
     @forelse($registrations as $registration)
         <div class="class-card">
             <div class="class-header">
                 <h3>{{ $registration->class->name }}</h3>
-                <span class="status-badge confirmed">✅ Đã xác nhận</span>
+                @if($registration->status->value === 'CONFIRMED')
+                    <span class="status-badge confirmed">✅ Đã xác nhận</span>
+                @else
+                    <span class="status-badge pending">⏳ Đang chờ duyệt</span>
+                @endif
             </div>
             <p>{{ $registration->class->description }}</p>
             <div class="class-info">
@@ -22,7 +28,17 @@
                 <span class="period">📅 {{ $registration->class->start_date->format('d/m/Y') }} - {{ $registration->class->end_date->format('d/m/Y') }}</span>
                 <span class="registered">📝 Đăng ký lúc: {{ $registration->created_at->format('d/m/Y H:i') }}</span>
             </div>
-            <a href="{{ route('registered.class.detail', $registration->class->id) }}" class="btn btn-primary" style="margin-top: 15px;">Xem chi tiết lớp học</a>
+            @if($registration->status->value === 'CONFIRMED')
+                <a href="{{ route('registered.class.detail', $registration->class->id) }}" class="btn btn-primary" style="margin-top: 15px;">Xem chi tiết và đánh giá</a>
+            @else
+                <a href="{{ route('class.detail', $registration->class->id) }}" class="btn" style="margin-top: 15px;">Xem thông tin lớp học</a>
+            @endif
+            @if($registration->attendances->isEmpty())
+                <form method="POST" action="{{ route('registered.class.cancel', $registration->id) }}" style="margin-top: 10px;">
+                    @csrf
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Bạn có chắc muốn hủy đơn đăng ký này?')">Hủy đơn đăng ký</button>
+                </form>
+            @endif
         </div>
     @empty
         <div class="alert alert-info">Bạn chưa có lớp học nào được xác nhận tham gia.</div>
@@ -73,6 +89,10 @@
 .status-badge.confirmed {
     background: #d4edda;
     color: #155724;
+}
+.status-badge.pending {
+    background: #fff3cd;
+    color: #856404;
 }
 
 .class-info {

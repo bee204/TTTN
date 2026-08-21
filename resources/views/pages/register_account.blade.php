@@ -3,8 +3,11 @@
 @section('content')
 <div class="auth-form-container">
     <h2>Đăng ký tài khoản</h2>
+    @if(session('info')) <div class="alert alert-info">{{ session('info') }}</div> @endif
+    @if($errors->any()) <div class="alert alert-danger">{{ $errors->first() }}</div> @endif
     <form method="POST" action="{{ route('account.register.submit') }}">
         @csrf
+        <input type="hidden" name="redirect" value="{{ request('redirect') }}">
         <div class="form-group">
             <label for="name">Tên</label>
             <input type="text" name="name" id="name" required class="form-control" value="{{ old('name') }}">
@@ -23,7 +26,7 @@
         </div>
         <button type="submit" class="btn btn-primary">Đăng ký</button>
     </form>
-    <!-- Đã có tài khoản? Đăng nhập (Admin) removed for user registration -->
+    <p>Đã có tài khoản? <a href="{{ route('account.login', ['redirect' => request('redirect')]) }}">Đăng nhập</a></p>
 </div>
 @endsection
 @push('styles')

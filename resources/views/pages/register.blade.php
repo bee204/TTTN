@@ -11,15 +11,16 @@
             @csrf
             <div class="form-group">
                 <label for="fullname">👤 Họ và tên *</label>
-                <input type="text" id="fullname" name="name" required placeholder="Nhập họ và tên đầy đủ">
+                <input type="text" id="fullname" name="name" required placeholder="Nhập họ và tên đầy đủ" value="{{ old('name', $user->name) }}">
             </div>
             <div class="form-group">
                 <label for="email">📧 Email *</label>
-                <input type="email" id="email" name="email" required placeholder="example@email.com">
+                <input type="email" id="email" name="email" required value="{{ $user->email }}" disabled>
+                <small style="display: block; margin-top: 5px; color: #6c757d;">Email lấy từ tài khoản và không thể thay đổi.</small>
             </div>
             <div class="form-group">
                 <label for="phone">📱 Số điện thoại *</label>
-                <input type="tel" id="phone" name="phone" required placeholder="0909123456">
+                <input type="tel" id="phone" name="phone" required placeholder="0909123456" value="{{ old('phone', $user->customer?->phone) }}">
             </div>
             <div class="form-group">
                 <label for="className">🏃‍♀️ Chọn lớp học *</label>

@@ -98,9 +98,11 @@
     </div>
 
     <div class="action-buttons">
-        <a href="{{ route('admin.classes.attendance', $class->id) }}" class="action-btn edit-btn">
-            ✅ Điểm danh
-        </a>
+        @if($class->start_date->isFuture())
+            <button type="button" class="action-btn edit-btn" disabled>⏳ Chưa bắt đầu</button>
+        @else
+            <a href="{{ route('admin.classes.attendance', $class->id) }}" class="action-btn edit-btn">✅ Điểm danh</a>
+        @endif
         <a href="{{ route('admin.classes.reviews', $class->id) }}" class="action-btn secondary-btn">
             ⭐ Xem đánh giá
         </a>

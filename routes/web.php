@@ -16,11 +16,16 @@ Route::get('/account/register', [WebController::class, 'registerAccount'])->name
 Route::post('/account/register', [WebController::class, 'registerAccountSubmit'])->name('account.register.submit');
 Route::get('/account/login', [WebController::class, 'loginAccount'])->name('account.login');
 Route::post('/account/login', [WebController::class, 'loginAccountSubmit'])->name('account.login.submit');
+Route::get('/login', fn () => redirect()->route('account.login'))->name('login');
+Route::get('/teacher/login', [WebController::class, 'teacherLogin'])->name('teacher.login');
+Route::post('/teacher/login', [WebController::class, 'loginAccountSubmit'])->name('teacher.login.submit');
 Route::post('/account/logout', [WebController::class, 'logoutAccount'])->middleware('auth')->name('account.logout');
+Route::get('/account', [WebController::class, 'accountProfile'])->middleware('auth')->name('account.profile');
 Route::post('/contact', [WebController::class, 'contactSend'])->name('contact.send');
-Route::get('/authors', [WebController::class, 'authors'])->name('authors');
 Route::get('/registered-classes', [WebController::class, 'registeredClasses'])->middleware('auth')->name('registered.classes');
-Route::get('/registered-classes/{id}', [WebController::class, 'registeredClassDetail'])->name('registered.class.detail');
+Route::post('/registered-classes/{id}/cancel', [WebController::class, 'cancelRegistration'])->middleware('auth')->name('registered.class.cancel');
+Route::get('/registered-classes/{id}', [WebController::class, 'registeredClassDetail'])->middleware('auth')->name('registered.class.detail');
+Route::post('/registered-classes/{id}/review', [WebController::class, 'submitClassReview'])->middleware('auth')->name('registered.class.review');
 
 Route::prefix('teacher')->name('teacher.')->middleware(['auth', 'role:teacher'])->group(function () {
     Route::get('/', [AdminController::class, 'teacherDashboard'])->name('dashboard');

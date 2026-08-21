@@ -14,7 +14,6 @@
     <link rel="stylesheet" href="{{ asset('css/classes.css') }}">
     <link rel="stylesheet" href="{{ asset('css/team.css') }}">
     <link rel="stylesheet" href="{{ asset('css/contact.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/authors.css') }}">
     <link rel="stylesheet" href="{{ asset('css/login.css') }}">
     @stack('styles')
     
@@ -78,9 +77,9 @@
         }
     }
     document.addEventListener('click', function(e) {
-        var dropdown = document.querySelector('.dropdown');
+        var dropdown = document.querySelector('.account-menu');
         var menu = document.getElementById('dropdown-menu');
-        if(!dropdown.contains(e.target)) {
+        if(menu && dropdown && !dropdown.contains(e.target)) {
             if(menu) menu.style.display = 'none';
         }
     });

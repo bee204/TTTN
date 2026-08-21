@@ -7,6 +7,7 @@
 <div class="login-container">
     <div class="login-card">
         <h1 class="login-title">🔐 Đăng nhập tài khoản</h1>
+        @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
         @if ($errors->any())
             <div class="alert alert-danger">
                 @foreach ($errors->all() as $error)
@@ -14,8 +15,10 @@
                 @endforeach
             </div>
         @endif
-        <form id="loginForm" method="POST" action="{{ route('account.login.submit') }}">
+        <form id="loginForm" method="POST" action="{{ ($portal ?? request('portal')) === 'teacher' ? route('teacher.login.submit') : route('account.login.submit') }}">
             @csrf
+            <input type="hidden" name="redirect" value="{{ request('redirect') }}">
+            <input type="hidden" name="portal" value="{{ $portal ?? request('portal') }}">
             <div class="form-group">
                 <label for="email">👤 Email</label>
                 <input type="email" id="email" name="email" required placeholder="Nhập email" value="{{ old('email') }}">

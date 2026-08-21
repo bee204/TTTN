@@ -120,35 +120,6 @@
     font-size: 0.9rem;
 }
 
-.students-list {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.student-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.student-item:last-child {
-    border-bottom: none;
-}
-
-.student-avatar {
-    width: 35px;
-    height: 35px;
-    background: #e9ecef;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: #495057;
-}
-
 .availability {
     text-align: center;
     padding: 20px;
@@ -303,38 +274,19 @@
             </div>
 
             <button class="register-btn" 
-                    onclick="window.location.href='{{ route('register') }}'"
-                    {{ $availableSlots <= 0 ? 'disabled' : '' }}>
-                @if($availableSlots > 0)
+                    onclick="window.location.href='{{ route('register', ['class_id' => $class->id]) }}'"
+                    {{ $availableSlots <= 0 || $registrationStatus ? 'disabled' : '' }}>
+                @if($registrationStatus === 'CONFIRMED')
+                    ✅ Bạn đã được duyệt lớp này
+                @elseif($registrationStatus === 'PENDING')
+                    ⏳ Đang chờ duyệt
+                @elseif($availableSlots > 0)
                     📝 Đăng ký ngay
                 @else
                     😔 Lớp đã đầy
                 @endif
             </button>
 
-            <div class="info-section" style="margin-top: 30px;">
-                <h3>👥 Danh sách học viên ({{ $registeredStudents->count() }})</h3>
-                <div class="students-list">
-                    @forelse($registeredStudents as $student)
-                        <div class="student-item">
-                            <div class="student-avatar">
-                                {{ substr($student->name, 0, 1) }}
-                            </div>
-                            <div>
-                                <strong>{{ $student->name }}</strong>
-                                <div style="font-size: 0.85rem; color: #666;">
-                                    {{ $student->phone }}
-                                </div>
-                            </div>
-                        </div>
-                    @empty
-                        <div style="text-align: center; color: #999; padding: 20px;">
-                            <p>👤 Chưa có học viên nào đăng ký</p>
-                            <p style="font-size: 0.9rem;">Hãy là người đầu tiên đăng ký lớp này!</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
         </div>
     </div>
 

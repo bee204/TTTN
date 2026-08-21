@@ -6,7 +6,11 @@
 <div class="page-header">
     <a href="{{ route('admin.classes.detail', $class->id) }}">← Quay lại lớp học</a>
     <h1>Đánh giá: {{ $class->name }}</h1>
-    <p>Điểm trung bình: <strong>{{ number_format($reviews->avg('rating') ?? 0, 2) }}/5</strong> ({{ $reviews->count() }} đánh giá)</p>
+    <div class="rating-summary">
+        <span class="summary-stars">{{ str_repeat('★', (int) round($reviews->avg('rating') ?? 0)) }}{{ str_repeat('☆', 5 - (int) round($reviews->avg('rating') ?? 0)) }}</span>
+        <strong>{{ number_format($reviews->avg('rating') ?? 0, 2) }}/5</strong>
+        <span>({{ $reviews->count() }} đánh giá)</span>
+    </div>
 </div>
 
 <div class="review-list">
@@ -24,6 +28,6 @@
 
 @push('styles')
 <style>
-.page-header,.review-row{background:#fff;padding:20px;border-radius:10px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.page-header h1{margin:12px 0 4px}.review-row small{display:block;color:#777;margin-top:4px}.stars{color:#f59f00;font-size:1.25rem;margin-top:10px}.review-row p{margin-bottom:0;color:#444}
+.page-header,.review-row{background:#fff;padding:20px;border-radius:10px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.page-header h1{margin:12px 0 4px}.rating-summary{display:flex;align-items:center;gap:10px;margin-top:12px;color:#555}.summary-stars,.stars{color:#f59f00;font-size:1.35rem;letter-spacing:2px}.review-row small{display:block;color:#777;margin-top:4px}.stars{margin-top:10px}.review-row p{margin-bottom:0;color:#444}
 </style>
 @endpush

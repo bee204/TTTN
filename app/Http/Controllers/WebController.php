@@ -6,6 +6,7 @@ use App\Models\YogaClass;
 use App\Models\Teacher;
 use App\Models\Customer;
 use App\Models\Registration;
+use App\Models\ClassReview;
 use App\Enums\RegistrationStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,6 +30,21 @@ class WebController extends Controller
         ]);
 
         $customer = Customer::where('email', $request->email)->first();
+        if ($customer) {
+            $customer->update(['name' => $request->name]);
+        } else {
+            do {
+                $phone = '09' . random_int(10000000, 99999999);
+            } while (Customer::where('phone', $phone)->exists());
+
+            $customer = Customer::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $phone,
+                'birthday' => '1990-01-01',
+                'gender' => 'other',
+            ]);
+        }
         $user = \App\Models\User::create([
             'user_name' => Str::before($request->email, '@') . '-' . uniqid(),
             'name' => $request->name,
@@ -38,14 +54,25 @@ class WebController extends Controller
             'role' => 'customer', // default role
         ]);
 
-        Auth::login($user);
-        return redirect()->route('dashboard')->with('success', 'Đăng ký tài khoản thành công!');
+        return redirect()->route('account.login', ['redirect' => $request->input('redirect')])
+            ->with('success', 'Đăng ký tài khoản thành công. Vui lòng đăng nhập để tiếp tục.');
     }
 
     // Account login page
     public function loginAccount()
     {
         return view('pages.login_account');
+    }
+
+    public function teacherLogin()
+    {
+        return view('pages.login_account', ['portal' => 'teacher']);
+    }
+
+    public function accountProfile()
+    {
+        abort_unless(Auth::check(), 401);
+        return view('pages.account_profile', ['user' => Auth::user()->load('customer')]);
     }
 
     // Handle account login
@@ -58,12 +85,24 @@ class WebController extends Controller
 
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             $user = Auth::user();
-            if ($user->role === 'admin') {
-                return redirect()->route('admin.dashboard');
-            } elseif ($user->role === 'teacher') {
+            $portal = $request->input('portal');
+            if ($user->role === 'teacher' && $portal === 'teacher') {
                 return redirect()->route('teacher.dashboard');
+            }
+
+            if ($user->role !== 'customer') {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Tài khoản giảng viên/quản trị viên không thể đăng nhập tại user site. Vui lòng sử dụng cổng đăng nhập riêng.',
+                ])->withInput($request->only('email', 'redirect'));
             } else {
-                return redirect()->route('dashboard');
+                $redirect = $request->input('redirect');
+                return $redirect && str_starts_with($redirect, '/')
+                    ? redirect($redirect)
+                    : redirect()->route('dashboard');
             }
         }
         return back()->withErrors(['email' => 'Thông tin đăng nhập không đúng!']);
@@ -81,23 +120,77 @@ class WebController extends Controller
     public function registeredClasses(Request $request)
     {
         abort_unless(Auth::check(), 401);
-        $customerId = Auth::user()->customer_id;
-        $registrations = Registration::with(['class.teacher'])
+        $customer = $this->authenticatedCustomer();
+        $customerId = $customer?->id;
+        $registrations = Registration::with(['class.teacher', 'attendances'])
             ->where('customer_id', $customerId)
-            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->whereIn('status', [
+                RegistrationStatus::PENDING->value,
+                RegistrationStatus::CONFIRMED->value,
+            ])
             ->latest()
             ->get();
         return view('pages.registered_classes', compact('registrations'));
     }
 
+    public function cancelRegistration($id)
+    {
+        $customer = $this->authenticatedCustomer();
+        abort_unless($customer, 403);
+        $registration = Registration::with('attendances')
+            ->where('id', $id)
+            ->where('customer_id', $customer->id)
+            ->whereIn('status', [RegistrationStatus::PENDING->value, RegistrationStatus::CONFIRMED->value])
+            ->firstOrFail();
+
+        if ($registration->attendances->isNotEmpty()) {
+            return back()->with('error', 'Không thể hủy đơn vì học viên đã được điểm danh.');
+        }
+
+        $registration->update(['status' => RegistrationStatus::CANCELLED]);
+        return back()->with('success', 'Đã hủy đơn đăng ký lớp học.');
+    }
+
     public function registeredClassDetail($id)
     {
+        abort_unless(Auth::check() && Auth::user()->customer_id, 403);
+        $registration = Registration::where('customer_id', Auth::user()->customer_id)
+            ->where('class_id', $id)
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->firstOrFail();
         $class = YogaClass::with('teacher')->findOrFail($id);
-        $members = Customer::whereHas('registrations', function($q) use ($id) {
-            $q->where('class_id', $id)
-              ->where('status', RegistrationStatus::CONFIRMED->value);
-        })->get();
-        return view('pages.registered_class_detail', compact('class', 'members'));
+        $review = ClassReview::where('customer_id', Auth::user()->customer_id)
+            ->where('class_id', $id)
+            ->first();
+        return view('pages.registered_class_detail', compact('class', 'review'));
+    }
+
+    public function submitClassReview(Request $request, $id)
+    {
+        abort_unless(Auth::check() && Auth::user()->customer_id, 403);
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'between:1,5'],
+            'comment' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        Registration::where('customer_id', Auth::user()->customer_id)
+            ->where('class_id', $id)
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->firstOrFail();
+
+        if (ClassReview::where('customer_id', Auth::user()->customer_id)
+            ->where('class_id', $id)
+            ->exists()) {
+            return back()->with('error', 'Bạn đã đánh giá lớp học này và không thể đánh giá lại.');
+        }
+
+        ClassReview::create([
+            'customer_id' => Auth::user()->customer_id,
+            'class_id' => $id,
+            ...$data,
+        ]);
+
+        return back()->with('success', 'Đánh giá lớp học đã được lưu.');
     }
     public function contactSend(Request $request)
     {
@@ -129,7 +222,20 @@ class WebController extends Controller
     public function classes()
     {
         $classes = YogaClass::with('teacher')->latest()->paginate(12);
-        return view('pages.classes', compact('classes'));
+        $customer = $this->authenticatedCustomer();
+        $registrationStatuses = $customer
+            ? Registration::with('attendances:id,registration_id')
+                ->where('customer_id', $customer->id)
+                ->whereIn('status', [RegistrationStatus::PENDING->value, RegistrationStatus::CONFIRMED->value])
+                ->get()
+                ->mapWithKeys(fn ($registration) => [
+                    $registration->class_id => [
+                        'status' => $registration->status->value,
+                        'has_attendance' => $registration->attendances->isNotEmpty(),
+                    ],
+                ])
+            : collect();
+        return view('pages.classes', compact('classes', 'registrationStatuses'));
     }
 
     public function classDetail($id)
@@ -147,8 +253,15 @@ class WebController extends Controller
         });
         
         $availableSlots = $class->quantity - $registeredStudents->count();
+        $customer = $this->authenticatedCustomer();
+        $registrationStatus = $customer
+            ? Registration::where('customer_id', $customer->id)
+                ->where('class_id', $id)
+                ->whereIn('status', [RegistrationStatus::PENDING->value, RegistrationStatus::CONFIRMED->value])
+                ->value('status')
+            : null;
         
-        return view('pages.class_detail', compact('class', 'registeredStudents', 'availableSlots'));
+        return view('pages.class_detail', compact('class', 'registeredStudents', 'availableSlots', 'registrationStatus'));
     }
 
     public function team()
@@ -165,10 +278,29 @@ class WebController extends Controller
 
     public function register(Request $request)
     {
-        $classes = YogaClass::with('teacher')->get();
-        $customers = Customer::get();
+        if (!Auth::check()) {
+            return redirect()->route('account.register', [
+                'redirect' => $request->getRequestUri(),
+            ])->with('info', 'Vui lòng tạo tài khoản để đăng ký lớp học.');
+        }
+        $customer = $this->authenticatedCustomer();
+        if ($customer && $request->filled('class_id') && Registration::where('customer_id', $customer->id)
+            ->where('class_id', $request->class_id)
+            ->whereIn('status', [RegistrationStatus::PENDING->value, RegistrationStatus::CONFIRMED->value])
+            ->exists()) {
+            return redirect()->route('classes')->with('error', 'Bạn đã đăng ký lớp học này hoặc đang chờ duyệt.');
+        }
+        $activeClassIds = $customer
+            ? Registration::where('customer_id', $customer->id)
+                ->whereIn('status', [RegistrationStatus::PENDING->value, RegistrationStatus::CONFIRMED->value])
+                ->pluck('class_id')
+            : collect();
+        $classes = YogaClass::with('teacher')
+            ->whereNotIn('id', $activeClassIds)
+            ->get();
         $selectedClassId = $request->get('class_id');
-        return view('pages.register', compact('classes', 'customers', 'selectedClassId'));
+        $user = Auth::user()->load('customer');
+        return view('pages.register', compact('classes', 'selectedClassId', 'user'));
     }
 
     public function contact()
@@ -262,29 +394,44 @@ class WebController extends Controller
 
     public function registerSubmit(Request $request)
     {
+        abort_unless(Auth::check(), 401);
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
             'phone' => 'required|string|max:20',
             'class_id' => 'required|exists:classes,id',
             'package_months' => 'required|in:1,3,6,12',
         ]);
 
-        // Find or create customer
-        $customer = Customer::firstOrCreate(
-            ['email' => $request->email],
-            [
-                'name' => $request->name,
-                'phone' => $request->phone,
-                'birthday' => '1990-01-01', // Default birthday since field is required
-                'gender' => $request->gender ?? 'female',
-                'address' => null,
-                'note' => null,
-            ]
-        );
+        $user = Auth::user();
+        $class = YogaClass::findOrFail($request->class_id);
+        if ($class->start_date->isPast()) {
+            return redirect()->route('classes')->with('error', 'Lớp học đã bắt đầu, không thể đăng ký thêm.');
+        }
+        $customer = $this->authenticatedCustomer();
+        $customer ??= Customer::create([
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $request->phone,
+            'birthday' => '1990-01-01',
+            'gender' => 'female',
+        ]);
+        $customer->update([
+            'name' => $request->name,
+            'phone' => $request->phone,
+        ]);
+        if (!$user->customer_id) {
+            $user->update(['customer_id' => $customer->id]);
+        }
+
+        $alreadyRegistered = Registration::where('customer_id', $customer->id)
+            ->where('class_id', $request->class_id)
+            ->whereIn('status', [RegistrationStatus::PENDING->value, RegistrationStatus::CONFIRMED->value])
+            ->exists();
+        if ($alreadyRegistered) {
+            return redirect()->route('classes')->with('error', 'Bạn đã đăng ký lớp học này hoặc đang chờ duyệt.');
+        }
 
         // Get class and calculate discount
-        $class = YogaClass::find($request->class_id);
         $packageMonths = $request->package_months;
         
         // Discount rates based on package
@@ -312,7 +459,25 @@ class WebController extends Controller
             'note' => $request->notes,
         ]);
 
-        return redirect()->route('register')->with('success', 'Đăng ký thành công! Đơn đăng ký của bạn đang chờ xét duyệt. Mã đăng ký: #' . $registration->id);
+        return redirect()->route('registered.classes')->with('success', 'Đăng ký thành công! Đơn đăng ký của bạn đang chờ xét duyệt. Mã đăng ký: #' . $registration->id);
+    }
+
+    private function authenticatedCustomer(): ?Customer
+    {
+        if (!Auth::check() || Auth::user()->role !== 'customer') {
+            return null;
+        }
+
+        $user = Auth::user();
+        $customer = $user->customer;
+        if (!$customer && $user->email) {
+            $customer = Customer::where('email', $user->email)->first();
+            if ($customer) {
+                $user->update(['customer_id' => $customer->id]);
+            }
+        }
+
+        return $customer;
     }
 
     // Admin routes

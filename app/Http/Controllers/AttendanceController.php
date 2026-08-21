@@ -29,7 +29,6 @@ class AttendanceController extends Controller
             'registration_id' => ['required', 'exists:registrations,id'],
             'attendance_date' => ['required', 'date'],
             'status' => ['required', Rule::in(['PRESENT', 'LATE', 'ABSENT', 'EXCUSED'])],
-            'note' => ['nullable', 'string', 'max:255'],
         ]);
 
         $registration = Registration::with('class')->findOrFail($data['registration_id']);
@@ -42,7 +41,7 @@ class AttendanceController extends Controller
 
         $attendance = Attendance::updateOrCreate(
             ['registration_id' => $registration->id, 'attendance_date' => $data['attendance_date']],
-            ['status' => $data['status'], 'note' => $data['note'] ?? null]
+            ['status' => $data['status']]
         );
 
         return response()->json($attendance->load('registration.customer'), 201);
@@ -54,10 +53,7 @@ class AttendanceController extends Controller
 
         $data = $request->validate([
             'status' => ['required', Rule::in(['PRESENT', 'LATE', 'ABSENT', 'EXCUSED'])],
-            'note' => ['nullable', 'string', 'max:255'],
         ]);
-
-        $this->ensureClassAccess($request, $data['class_id']);
 
         $attendance->update($data);
         return response()->json($attendance->fresh()->load('registration.customer'));
@@ -93,8 +89,10 @@ class AttendanceController extends Controller
     private function ensureEligibleDate(Registration $registration, string $date): void
     {
         $class = $registration->class;
-        if ($date < $class->start_date->format('Y-m-d') || $date > $class->end_date->format('Y-m-d')) {
-            abort(422, 'Attendance date must be within the class period.');
+        if ($date < $class->start_date->format('Y-m-d')
+            || $date > $class->end_date->format('Y-m-d')
+            || $date > now()->toDateString()) {
+            abort(422, 'Attendance date must be within the class period and cannot be in the future.');
         }
     }
 
