@@ -25,7 +25,7 @@ function handleContactSubmit(event) {
     alert('📧 Cảm ơn bạn đã liên hệ!\n\n' +
           'Tin nhắn của bạn đã được gửi thành công.\n' +
           'Chúng tôi sẽ phản hồi trong vòng 24 giờ.\n\n' +
-          '✨ Cảm ơn bạn đã quan tâm đến Yoga/Gym Center!');
+          '✨ Cảm ơn bạn đã quan tâm đến VITA Yoga Center!');
     
     // Reset form
     document.getElementById('contactForm').reset();

@@ -6,7 +6,7 @@
 <h1 class="page-title">🧘‍♀️ {{ $class->name }}</h1>
 <div class="class-detail">
     <div class="teacher-info">
-        <h3>👨‍🏫 Giảng viên</h3>
+        <h3>👨‍🏫 Giáo viên Yoga</h3>
         <div class="card">
             <div class="card-body">
                 <h5>{{ $class->teacher->name }}</h5>

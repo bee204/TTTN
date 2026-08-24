@@ -1,564 +1,169 @@
 @extends('layouts.admin')
 
-@section('title', 'Quản lý Đăng ký - Admin')
-
-@section('content')
-<div class="page-header">
-    <div class="header-content">
-        <h1><i class="fas fa-file-alt"></i> Quản lý Đăng ký</h1>
-        <p>Duyệt và quản lý các đăng ký lớp học</p>
-    </div>
-    <div class="header-actions">
-        <div class="search-form">
-            <form method="GET" action="{{ route('admin.registrations') }}">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="🔍 Tìm kiếm theo tên, email, lớp học..." class="search-input">
-                <button type="submit" class="search-btn">Tìm kiếm</button>
-            </form>
-        </div>
-        <a href="{{ route('admin.registrations.create') }}" class="create-btn">
-            <i class="fas fa-plus"></i> Tạo đơn đăng ký
-        </a>
-    </div>
-    <div class="filter-buttons">
-        <a href="{{ route('admin.registrations') }}" class="filter-btn {{ request('status') == '' ? 'active' : '' }}">
-            Tất cả
-        </a>
-        <a href="{{ route('admin.registrations', ['status' => 'pending']) }}" class="filter-btn {{ request('status') == 'pending' ? 'active' : '' }}">
-            Chờ duyệt ({{ $stats['pending'] ?? 0 }})
-        </a>
-        <a href="{{ route('admin.registrations', ['status' => 'confirmed']) }}" class="filter-btn {{ request('status') == 'confirmed' ? 'active' : '' }}">
-            Đã duyệt ({{ $stats['approved'] ?? 0 }})
-        </a>
-        <a href="{{ route('admin.registrations', ['status' => 'cancelled']) }}" class="filter-btn {{ request('status') == 'cancelled' ? 'active' : '' }}">
-            Từ chối ({{ $stats['rejected'] ?? 0 }})
-        </a>
-    </div>
-</div>
-</div>
-
-@if(session('success'))
-    <div class="alert alert-success">
-        <i class="fas fa-check-circle"></i> {{ session('success') }}
-    </div>
-@endif
-
-@if(session('error'))
-    <div class="alert alert-error">
-        <i class="fas fa-times-circle"></i> {{ session('error') }}
-    </div>
-@endif
-
-<div class="registrations-container">
-    @forelse($registrations as $registration)
-        <div class="registration-card">
-            <div class="registration-main">
-                <div class="customer-info">
-                    <div class="customer-avatar">
-                        {{ substr($registration->customer->name ?? 'N/A', 0, 1) }}
-                    </div>
-                    <div class="customer-details">
-                        <h3>{{ $registration->customer->name ?? 'Không có thông tin' }}</h3>
-                        <p><i class="fas fa-envelope"></i> {{ $registration->customer->email ?? 'Không có email' }}</p>
-                        <p><i class="fas fa-phone"></i> {{ $registration->customer->phone ?? 'Không có SĐT' }}</p>
-                    </div>
-                </div>
-                
-                <div class="class-info">
-                    <h4><i class="fas fa-dumbbell"></i> {{ $registration->class->name }}</h4>
-                    <p><i class="fas fa-chalkboard-teacher"></i> {{ $registration->class->teacher->name }}</p>
-                    <p><i class="fas fa-dollar-sign"></i> {{ number_format($registration->class->price) }} VNĐ</p>
-                    <p><i class="fas fa-clock"></i> {{ $registration->class->schedule }}</p>
-                </div>
-                
-                <div class="registration-meta">
-                    <div class="status-badge status-{{ strtolower($registration->status->value) }}">
-                        @switch($registration->status->value)
-                            @case('PENDING')
-                                <i class="fas fa-clock"></i> Chờ duyệt
-                                @break
-                            @case('CONFIRMED')
-                                <i class="fas fa-check-circle"></i> Đã duyệt
-                                @break
-                            @case('CANCELLED')
-                                <i class="fas fa-times-circle"></i> Từ chối
-                                @break
-                            @default
-                                <i class="fas fa-file-alt"></i> {{ $registration->status->value }}
-                        @endswitch
-                    </div>
-                    <div class="registration-date">
-                        <i class="fas fa-calendar"></i> {{ $registration->created_at->format('d/m/Y H:i') }}
-                    </div>
-                    @if($registration->note)
-                        <div class="registration-note">
-                            <i class="fas fa-sticky-note"></i> {{ $registration->note }}
-                        </div>
-                    @endif
-                </div>
-            </div>
-            
-            <div class="registration-actions">
-                @if($registration->status->value === 'PENDING')
-                    <form method="POST" action="{{ route('admin.registrations.approve', $registration->id) }}" style="display: inline;">
-                        @csrf
-                        <button type="submit" class="action-btn approve-btn" onclick="return confirm('Bạn có chắc muốn duyệt đăng ký này?')">
-                            <i class="fas fa-check"></i> Duyệt
-                        </button>
-                    </form>
-                    
-                    <form method="POST" action="{{ route('admin.registrations.reject', $registration->id) }}" style="display: inline;">
-                        @csrf
-                        <button type="submit" class="action-btn reject-btn" onclick="return confirm('Bạn có chắc muốn từ chối đăng ký này?')">
-                            <i class="fas fa-times"></i> Từ chối
-                        </button>
-                    </form>
-                @endif
-                
-                <a href="{{ route('admin.registrations.detail', $registration->id) }}" class="action-btn view-btn">
-                    <i class="fas fa-eye"></i> Chi tiết
-                </a>
-                
-                <a href="{{ route('admin.registrations.edit', $registration->id) }}" class="action-btn edit-btn">
-                    <i class="fas fa-edit"></i> Sửa
-                </a>
-                
-                <form method="POST" action="{{ route('admin.registrations.destroy', $registration->id) }}" style="display: inline;">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="action-btn delete-btn" onclick="return confirm('Bạn có chắc muốn xóa đăng ký này? Hành động này không thể hoàn tác!')">
-                        <i class="fas fa-trash"></i> Xóa
-                    </button>
-                </form>
-            </div>
-        </div>
-    @empty
-        <div class="empty-state">
-            <div class="empty-icon">📭</div>
-            <h3>Không có đăng ký nào</h3>
-            <p>
-                @if(request('status'))
-                    Không có đăng ký nào với trạng thái "{{ ucfirst(request('status')) }}"
-                @else
-                    Chưa có ai đăng ký lớp học nào cả
-                @endif
-            </p>
-        </div>
-    @endforelse
-</div>
-
-@if($registrations->hasPages())
-    <div class="pagination-wrapper">
-        {{ $registrations->links() }}
-    </div>
-@endif
+@section('title', 'Đơn đăng ký - VITA Control')
 
 @push('styles')
-<style>
-.page-header {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.header-actions {
-    margin-top: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-}
-
-.search-form form {
-    display: flex;
-    gap: 10px;
-}
-
-.search-input {
-    width: 300px;
-    padding: 8px 15px;
-    border: 2px solid #e9ecef;
-    border-radius: 6px;
-    font-size: 0.9rem;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #667eea;
-}
-
-.search-btn {
-    padding: 8px 16px;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.search-btn:hover {
-    background: #5a6fd8;
-}
-
-.create-btn {
-    background: #28a745;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: background 0.2s;
-}
-
-.create-btn:hover {
-    background: #218838;
-    color: white;
-}
-
-.header-content h1 {
-    font-size: 2rem;
-    color: #333;
-    margin-bottom: 5px;
-}
-
-.header-content p {
-    color: #666;
-    margin: 0;
-}
-
-.filter-buttons {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 15px;
-}
-
-.filter-btn {
-    padding: 8px 16px;
-    border-radius: 20px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.2s;
-    background: #f8f9fa;
-    color: #666;
-}
-
-.filter-btn:hover {
-    background: #e9ecef;
-    color: #333;
-}
-
-.filter-btn.active {
-    background: #667eea;
-    color: white;
-}
-
-.search-form {
-    margin-bottom: 15px;
-}
-
-.search-form form {
-    display: flex;
-    gap: 10px;
-}
-
-.search-input {
-    flex: 1;
-    padding: 8px 15px;
-    border: 2px solid #e9ecef;
-    border-radius: 6px;
-    font-size: 0.9rem;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #667eea;
-}
-
-.search-btn {
-    padding: 8px 16px;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.search-btn:hover {
-    background: #5a6fd8;
-}
-
-.alert {
-    padding: 15px 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-weight: 500;
-}
-
-.alert-success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-.alert-error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.registrations-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.registration-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    overflow: hidden;
-    transition: transform 0.2s;
-}
-
-.registration-card:hover {
-    transform: translateY(-2px);
-}
-
-.registration-main {
-    padding: 25px;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 25px;
-    align-items: start;
-}
-
-.customer-info {
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-}
-
-.customer-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: #667eea;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    font-weight: bold;
-    flex-shrink: 0;
-}
-
-.customer-details h3 {
-    margin: 0 0 8px 0;
-    color: #333;
-    font-size: 1.1rem;
-}
-
-.customer-details p {
-    margin: 3px 0;
-    color: #666;
-    font-size: 0.9rem;
-}
-
-.class-info h4 {
-    margin: 0 0 10px 0;
-    color: #333;
-    font-size: 1.1rem;
-}
-
-.class-info p {
-    margin: 5px 0;
-    color: #666;
-    font-size: 0.9rem;
-}
-
-.registration-meta {
-    text-align: right;
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    margin-bottom: 10px;
-}
-
-.status-pending {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.status-confirmed {
-    background: #d4edda;
-    color: #155724;
-}
-
-.status-cancelled {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-.registration-date {
-    color: #999;
-    font-size: 0.8rem;
-    margin-bottom: 5px;
-}
-
-.registration-note {
-    color: #666;
-    font-size: 0.8rem;
-    font-style: italic;
-    margin-top: 8px;
-    padding: 8px;
-    background: #f8f9fa;
-    border-radius: 6px;
-}
-
-.registration-actions {
-    padding: 15px 25px;
-    background: #f8f9fa;
-    border-top: 1px solid #dee2e6;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.action-btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    transition: all 0.2s;
-}
-
-.approve-btn {
-    background: #28a745;
-    color: white;
-}
-
-.approve-btn:hover {
-    background: #218838;
-}
-
-.reject-btn {
-    background: #dc3545;
-    color: white;
-}
-
-.reject-btn:hover {
-    background: #c82333;
-}
-
-.view-btn {
-    background: #17a2b8;
-    color: white;
-}
-
-.view-btn:hover {
-    background: #138496;
-}
-
-.edit-btn {
-    background: #ffc107;
-    color: #212529;
-}
-
-.edit-btn:hover {
-    background: #e0a800;
-}
-
-.delete-btn {
-    background: #dc3545;
-    color: white;
-}
-
-.delete-btn:hover {
-    background: #c82333;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 80px 20px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.empty-icon {
-    font-size: 4rem;
-    margin-bottom: 20px;
-}
-
-.empty-state h3 {
-    color: #333;
-    margin-bottom: 10px;
-}
-
-.empty-state p {
-    color: #666;
-}
-
-.pagination-wrapper {
-    margin-top: 30px;
-    display: flex;
-    justify-content: center;
-}
-
-@media (max-width: 1024px) {
-    .registration-main {
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-    }
-    
-    .registration-meta {
-        grid-column: span 2;
-        text-align: left;
-    }
-}
-
-@media (max-width: 768px) {
-    .page-header {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
-    .registration-main {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-    
-    .registration-meta {
-        grid-column: span 1;
-        text-align: left;
-    }
-    
-    .registration-actions {
-        flex-direction: column;
-    }
-    
-    .action-btn {
-        justify-content: center;
-    }
-}
-</style>
+<link rel="stylesheet" href="{{ asset('css/admin-registrations.css') }}">
 @endpush
+
+@section('content')
+@php
+    $currentStatus = strtolower((string) request('status'));
+    $baseFilter = array_filter(['search' => request('search')]);
+    $totalRegistrations = $stats['pending'] + $stats['confirmed'] + $stats['cancelled'];
+@endphp
+
+<div class="registration-admin-page">
+    <header class="registration-admin-header">
+        <div>
+            <span class="registration-admin-eyebrow"><i class="fa-solid fa-circle" aria-hidden="true"></i> Quản lý vận hành</span>
+            <h1>Đơn đăng ký lớp Yoga</h1>
+            <p>Theo dõi, xét duyệt và cập nhật các yêu cầu đăng ký của học viên.</p>
+        </div>
+        <a href="{{ route('admin.registrations.create') }}" class="registration-create-action">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo đơn đăng ký
+        </a>
+    </header>
+
+    <section class="registration-summary-grid" aria-label="Thống kê trạng thái đăng ký">
+        <a href="{{ route('admin.registrations', $baseFilter) }}" class="registration-summary-card registration-summary-card--all {{ $currentStatus === '' ? 'is-active' : '' }}">
+            <span><i class="fa-regular fa-file-lines" aria-hidden="true"></i></span>
+            <div><small>Tất cả đơn</small><strong>{{ number_format($totalRegistrations) }}</strong></div>
+        </a>
+        <a href="{{ route('admin.registrations', array_merge($baseFilter, ['status' => 'pending'])) }}" class="registration-summary-card registration-summary-card--pending {{ $currentStatus === 'pending' ? 'is-active' : '' }}">
+            <span><i class="fa-regular fa-clock" aria-hidden="true"></i></span>
+            <div><small>Chờ duyệt</small><strong>{{ number_format($stats['pending']) }}</strong></div>
+        </a>
+        <a href="{{ route('admin.registrations', array_merge($baseFilter, ['status' => 'confirmed'])) }}" class="registration-summary-card registration-summary-card--confirmed {{ $currentStatus === 'confirmed' ? 'is-active' : '' }}">
+            <span><i class="fa-regular fa-circle-check" aria-hidden="true"></i></span>
+            <div><small>Đã duyệt</small><strong>{{ number_format($stats['confirmed']) }}</strong></div>
+        </a>
+        <a href="{{ route('admin.registrations', array_merge($baseFilter, ['status' => 'cancelled'])) }}" class="registration-summary-card registration-summary-card--cancelled {{ $currentStatus === 'cancelled' ? 'is-active' : '' }}">
+            <span><i class="fa-regular fa-circle-xmark" aria-hidden="true"></i></span>
+            <div><small>Đã hủy</small><strong>{{ number_format($stats['cancelled']) }}</strong></div>
+        </a>
+    </section>
+
+    <section class="registration-toolbar" aria-label="Tìm kiếm và lọc đơn đăng ký">
+        <form method="GET" action="{{ route('admin.registrations') }}" class="registration-search-form">
+            @if($currentStatus !== '')<input type="hidden" name="status" value="{{ $currentStatus }}">@endif
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <label for="registrationSearch" class="registration-sr-only">Tìm kiếm đơn đăng ký</label>
+            <input type="search" id="registrationSearch" name="search" value="{{ request('search') }}" placeholder="Tên, email, số điện thoại hoặc lớp Yoga...">
+            @if(request()->filled('search'))
+                <a href="{{ route('admin.registrations', array_filter(['status' => $currentStatus])) }}" aria-label="Xóa từ khóa tìm kiếm"><i class="fa-solid fa-xmark" aria-hidden="true"></i></a>
+            @endif
+            <button type="submit">Tìm kiếm</button>
+        </form>
+        <div class="registration-toolbar__result">
+            <span>{{ number_format($registrations->total()) }} kết quả</span>
+            <small>Trang {{ $registrations->currentPage() }} / {{ max(1, $registrations->lastPage()) }}</small>
+        </div>
+    </section>
+
+    <section class="registration-table-panel">
+        <div class="registration-table-wrap">
+            <table class="registration-table">
+                <thead>
+                    <tr>
+                        <th>Học viên</th>
+                        <th>Lớp Yoga</th>
+                        <th>Gói học</th>
+                        <th>Thành tiền</th>
+                        <th>Ngày đăng ký</th>
+                        <th>Trạng thái</th>
+                        <th><span class="registration-sr-only">Thao tác</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($registrations as $registration)
+                        @php
+                            $status = $registration->status->value;
+                            $statusMeta = match($status) {
+                                'CONFIRMED' => ['Đã duyệt', 'confirmed', 'fa-circle-check'],
+                                'CANCELLED' => ['Đã hủy', 'cancelled', 'fa-circle-xmark'],
+                                default => ['Chờ duyệt', 'pending', 'fa-clock'],
+                            };
+                        @endphp
+                        <tr class="{{ $status === 'PENDING' ? 'is-pending' : '' }}">
+                            <td data-label="Học viên">
+                                <div class="registration-customer">
+                                    <span>{{ mb_strtoupper(mb_substr($registration->customer?->name ?? 'H', 0, 1)) }}</span>
+                                    <div>
+                                        <strong>{{ $registration->customer?->name ?? 'Không có thông tin' }}</strong>
+                                        <small>{{ $registration->customer?->email ?? 'Không có email' }}</small>
+                                        <small>{{ $registration->customer?->phone ?? 'Không có SĐT' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-label="Lớp Yoga">
+                                <div class="registration-class">
+                                    <strong>{{ $registration->class?->name ?? 'Lớp không còn tồn tại' }}</strong>
+                                    <small><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ $registration->class?->lich_hoc ?? 'Chưa cập nhật lịch' }}</small>
+                                    <small><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i> {{ $registration->class?->teacher?->name ?? 'Chưa có giáo viên' }}</small>
+                                </div>
+                            </td>
+                            <td data-label="Gói học">
+                                <div class="registration-package"><strong>{{ $registration->package_months }} tháng</strong><small>Giảm {{ number_format($registration->discount, 0, ',', '.') }}đ</small></div>
+                            </td>
+                            <td data-label="Thành tiền"><strong class="registration-price">{{ number_format($registration->final_price, 0, ',', '.') }}<small>đ</small></strong></td>
+                            <td data-label="Ngày đăng ký">
+                                <div class="registration-created"><strong>{{ $registration->created_at->format('d/m/Y') }}</strong><small>{{ $registration->created_at->format('H:i') }} · #{{ str_pad((string) $registration->id, 4, '0', STR_PAD_LEFT) }}</small></div>
+                            </td>
+                            <td data-label="Trạng thái"><span class="registration-status registration-status--{{ $statusMeta[1] }}"><i class="fa-regular {{ $statusMeta[2] }}" aria-hidden="true"></i> {{ $statusMeta[0] }}</span></td>
+                            <td data-label="Thao tác">
+                                <div class="registration-actions">
+                                    @if($status === 'PENDING')
+                                        <form method="POST" action="{{ route('admin.registrations.approve', $registration->id) }}">
+                                            @csrf
+                                            <button type="submit" class="registration-action registration-action--approve" title="Duyệt đơn" aria-label="Duyệt đơn số {{ $registration->id }}" onclick="return confirm('Duyệt đơn đăng ký #{{ $registration->id }}?')"><i class="fa-solid fa-check" aria-hidden="true"></i></button>
+                                        </form>
+                                        <form method="POST" action="{{ route('admin.registrations.reject', $registration->id) }}">
+                                            @csrf
+                                            <button type="submit" class="registration-action registration-action--reject" title="Từ chối đơn" aria-label="Từ chối đơn số {{ $registration->id }}" onclick="return confirm('Từ chối đơn đăng ký #{{ $registration->id }}?')"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                                        </form>
+                                    @endif
+                                    <a href="{{ route('admin.registrations.detail', $registration->id) }}" class="registration-action" title="Xem chi tiết" aria-label="Xem chi tiết đơn số {{ $registration->id }}"><i class="fa-regular fa-eye" aria-hidden="true"></i></a>
+                                    <a href="{{ route('admin.registrations.edit', $registration->id) }}" class="registration-action" title="Chỉnh sửa" aria-label="Chỉnh sửa đơn số {{ $registration->id }}"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i></a>
+                                    <form method="POST" action="{{ route('admin.registrations.destroy', $registration->id) }}" data-confirm-title="Xóa đơn đăng ký?" data-confirm-message="Đơn đăng ký #{{ $registration->id }} sẽ bị xóa vĩnh viễn khỏi hệ thống.">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="registration-action registration-action--delete" title="Xóa đơn" aria-label="Xóa đơn số {{ $registration->id }}"><i class="fa-regular fa-trash-can" aria-hidden="true"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7">
+                                <div class="registration-empty-state">
+                                    <span><i class="fa-regular fa-folder-open" aria-hidden="true"></i></span>
+                                    <h2>Không tìm thấy đơn đăng ký</h2>
+                                    <p>Thử thay đổi từ khóa hoặc trạng thái đang lọc.</p>
+                                    @if(request()->hasAny(['search', 'status']))<a href="{{ route('admin.registrations') }}">Xóa toàn bộ bộ lọc</a>@endif
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if($registrations->hasPages())
+            <nav class="registration-pagination" aria-label="Phân trang đơn đăng ký">
+                @if($registrations->onFirstPage())
+                    <span class="is-disabled"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Trang trước</span>
+                @else
+                    <a href="{{ $registrations->previousPageUrl() }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Trang trước</a>
+                @endif
+                <span class="registration-pagination__current">{{ $registrations->currentPage() }} / {{ $registrations->lastPage() }}</span>
+                @if($registrations->hasMorePages())
+                    <a href="{{ $registrations->nextPageUrl() }}">Trang sau <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                @else
+                    <span class="is-disabled">Trang sau <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                @endif
+            </nav>
+        @endif
+    </section>
+</div>
 @endsection

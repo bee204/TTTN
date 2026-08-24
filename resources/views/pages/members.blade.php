@@ -1,3 +1,7 @@
+{{--
+    LEGACY / UNUSED: WebController::members() không được khai báo trong routes/web.php.
+    Danh sách học viên hiện chỉ nằm trong khu vực admin. Xem docs/LEGACY_UNUSED.md.
+--}}
 @extends('layouts.app')
 @section('content')
 <div class="row">

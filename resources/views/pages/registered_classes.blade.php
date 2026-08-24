@@ -20,7 +20,7 @@
             <p>{{ $registration->class->description }}</p>
             <div class="class-info">
                 <span class="time">⏰ {{ $registration->class->start_time->format('H:i') }} - {{ $registration->class->end_time->format('H:i') }}</span>
-                <span class="teacher">👨‍🏫 Giảng viên: {{ $registration->class->teacher->name ?? 'Chưa có' }}</span>
+                <span class="teacher">👨‍🏫 Giáo viên: {{ $registration->class->teacher->name ?? 'Chưa có' }}</span>
                 <span class="price">💰 {{ number_format($registration->class->price) }} VNĐ</span>
                 <span class="location">📍 {{ $registration->class->location }}</span>
             </div>

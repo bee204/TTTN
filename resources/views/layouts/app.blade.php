@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Yoga/Gym Center')</title>
+    <title>@yield('title', 'VITA Yoga Center')</title>
     
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -18,8 +18,10 @@
     @stack('styles')
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('css/readability.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/login-chooser.css') }}">
 </head>
-<body>
+<body class="@yield('body-class')">
     @include('components.header')
 
     <main>
@@ -46,12 +48,16 @@
     <script src="{{ asset('js/main.js') }}"></script>
     <script src="{{ asset('js/dashboard.js') }}"></script>
     <script src="{{ asset('js/search.js') }}"></script>
+    <script src="{{ asset('js/login-chooser.js') }}"></script>
     @stack('scripts')
     
     <script>
     function toggleMainNav() {
         var navList = document.querySelector('.main-nav .nav-list');
-        navList.style.display = (navList.style.display === 'flex' || navList.style.display === '') ? 'block' : 'flex';
+        var navToggle = document.querySelector('.main-nav .nav-toggle');
+        var isOpen = navList.style.display !== 'none';
+        navList.style.display = isOpen ? 'none' : 'flex';
+        navToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
     }
     function handleMainNavResize() {
         var navToggle = document.querySelector('.main-nav .nav-toggle');
@@ -59,9 +65,11 @@
         if(window.innerWidth <= 768) {
             navToggle.style.display = 'block';
             navList.style.display = 'none';
+            navToggle.setAttribute('aria-expanded', 'false');
         } else {
             navToggle.style.display = 'none';
             navList.style.display = 'flex';
+            navToggle.setAttribute('aria-expanded', 'false');
         }
     }
     window.addEventListener('resize', handleMainNavResize);
@@ -70,17 +78,30 @@
     // Dropdown logic
     function toggleDropdown() {
         var menu = document.getElementById('dropdown-menu');
-        if(menu.style.display === 'block') {
-            menu.style.display = 'none';
-        } else {
-            menu.style.display = 'block';
-        }
+        var trigger = document.querySelector('.account-trigger[aria-controls="dropdown-menu"]');
+        var isOpen = menu.style.display === 'block';
+        menu.style.display = isOpen ? 'none' : 'block';
+        if(trigger) trigger.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
     }
     document.addEventListener('click', function(e) {
         var dropdown = document.querySelector('.account-menu');
         var menu = document.getElementById('dropdown-menu');
         if(menu && dropdown && !dropdown.contains(e.target)) {
             if(menu) menu.style.display = 'none';
+            var trigger = document.querySelector('.account-trigger[aria-controls="dropdown-menu"]');
+            if(trigger) trigger.setAttribute('aria-expanded', 'false');
+        }
+    });
+    document.addEventListener('keydown', function(e) {
+        if(e.key !== 'Escape') return;
+        var menu = document.getElementById('dropdown-menu');
+        var trigger = document.querySelector('.account-trigger[aria-controls="dropdown-menu"]');
+        if(menu && menu.style.display === 'block') {
+            menu.style.display = 'none';
+            if(trigger) {
+                trigger.setAttribute('aria-expanded', 'false');
+                trigger.focus();
+            }
         }
     });
     </script>
@@ -97,18 +118,18 @@
         .main-nav .nav-list {
             flex-direction: column;
             gap: 0;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            border-radius: 10px;
+            background: #10372f;
+            box-shadow: 0 16px 30px rgba(10,38,32,.2);
+            border-radius: 0 0 14px 14px;
             position: absolute;
-            top: 55px;
+            top: 66px;
             left: 10px;
             right: 10px;
             z-index: 100;
             padding: 10px 0;
         }
         .main-nav .nav-list li {
-            margin: 10px 0;
+            margin: 1px 0;
         }
         .main-nav .nav-toggle {
             display: block !important;

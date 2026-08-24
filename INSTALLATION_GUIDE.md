@@ -99,7 +99,7 @@ php -r "unlink('composer-setup.php');"
 ### 1. Clone Repository
 ```bash
 # Clone dự án từ GitHub
-git clone https://github.com/nguyentrungnghia1802/Yoga-Website-PHP.git
+git clone git@github.com:bee204/TTTN.git
 
 # Di chuyển vào thư mục dự án
 cd Yoga-Website-PHP
@@ -413,12 +413,6 @@ npm run dev
 2. **Enable debug mode:** Set `APP_DEBUG=true` trong `.env`
 3. **Kiểm tra browser console** cho lỗi JavaScript
 4. **Chạy:** `php artisan config:clear` và `php artisan cache:clear`
-
-### Liên Hệ Hỗ Trợ:
-- **Email:** camtu.dev@gmail.com
-- **GitHub Issues:** https://github.com/nguyentrungnghia1802/Yoga-Website-PHP/issues
-
----
 
 ## 🎉 Chúc Mừng!
 

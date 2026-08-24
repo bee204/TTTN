@@ -86,8 +86,18 @@ class WebController extends Controller
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             $user = Auth::user();
             $portal = $request->input('portal');
-            if ($user->role === 'teacher' && $portal === 'teacher') {
-                return redirect()->route('teacher.dashboard');
+            if ($portal === 'teacher') {
+                if ($user->role === 'teacher') {
+                    return redirect()->route('teacher.dashboard');
+                }
+
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Cổng này chỉ dành cho tài khoản giáo viên được VITA cấp.',
+                ])->withInput($request->only('email'));
             }
 
             if ($user->role !== 'customer') {
@@ -375,7 +385,7 @@ class WebController extends Controller
             'features' => 15,
             'files' => 50,
             'lines' => 1000,
-            'goal' => 'Phát triển một hệ thống quản lý trung tâm Yoga/Gym toàn diện, hỗ trợ đăng ký lớp học, quản lý thành viên, và các tính năng quản trị cho nhân viên. Hệ thống được thiết kế với giao diện thân thiện và dễ sử dụng.',
+            'goal' => 'Phát triển một hệ thống quản lý trung tâm Yoga toàn diện, hỗ trợ đăng ký lớp học, quản lý thành viên, và các tính năng quản trị cho nhân viên. Hệ thống được thiết kế với giao diện thân thiện và dễ sử dụng.',
             'tech' => ['Laravel','PHP','HTML5','CSS3','JavaScript','MySQL','Bootstrap'],
             'period' => '8 tuần, từ tháng 1 đến tháng 3 năm 2025',
             'context' => 'Đây là đồ án cuối kỳ môn "Lập trình Web" thuộc chương trình Công nghệ Thông tin. Dự án được thực hiện dưới sự hướng dẫn của giảng viên và áp dụng các kiến thức đã học trong suốt khóa học.'
@@ -402,12 +412,17 @@ class WebController extends Controller
             'phone' => 'required|string|max:20',
             'class_id' => 'required|exists:classes,id',
             'package_months' => 'required|in:1,3,6,12',
+            'notes' => 'nullable|string|max:1000',
+            'terms' => 'accepted',
         ]);
 
         $user = Auth::user();
         $class = YogaClass::findOrFail($request->class_id);
         if ($class->start_date->isPast()) {
             return redirect()->route('classes')->with('error', 'Lớp học đã bắt đầu, không thể đăng ký thêm.');
+        }
+        if ($class->is_full) {
+            return back()->withInput()->with('error', 'Lớp học vừa đủ chỗ. Vui lòng chọn một lớp Yoga khác.');
         }
         $customer = $this->authenticatedCustomer();
         $customer ??= Customer::create([
@@ -518,13 +533,16 @@ class WebController extends Controller
 
     public function teachers()
     {
-        $teachers = Teacher::with('classes')->get();
+        $teachers = Teacher::withCount('classes')->latest()->paginate(12);
         return view('pages.teachers', compact('teachers'));
     }
 
     public function teacherDetail($id)
     {
-        $teacher = Teacher::with('classes')->findOrFail($id);
+        $teacher = Teacher::with(['classes' => fn ($query) => $query
+            ->orderByRaw('end_date < ? asc', [today()->toDateString()])
+            ->orderBy('start_date')])
+            ->findOrFail($id);
         return view('pages.teacher_detail', compact('teacher'));
     }
 }

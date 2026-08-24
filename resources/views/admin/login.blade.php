@@ -3,178 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập Admin - Yoga/Gym Center</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .login-container {
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 400px;
-        }
-        
-        .login-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .login-header h1 {
-            color: #333;
-            font-size: 2rem;
-            margin-bottom: 10px;
-        }
-        
-        .login-header p {
-            color: #666;
-            font-size: 1rem;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-        
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .btn {
-            width: 100%;
-            padding: 12px 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .alert {
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            font-weight: 500;
-        }
-        
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .login-footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e1e5e9;
-        }
-        
-        .login-footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        .demo-info {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            font-size: 0.9rem;
-            color: #666;
-        }
-    </style>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Đăng nhập quản trị - VITA Yoga Center</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/admin-login.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/readability.css') }}">
 </head>
-<body>
-    <div class="login-container">
-        <div class="login-header">
-            <h1>⚙️ Admin Panel</h1>
-            <p>Đăng nhập để quản lý hệ thống</p>
-        </div>
-
-        @if(session('success'))
-            <div class="alert alert-success">
-                ✅ {{ session('success') }}
+<body class="admin-login-page">
+    <div class="admin-login-shell">
+        <aside class="admin-login-intro">
+            <div class="admin-login-brand">
+                <span><i class="fa-solid fa-leaf" aria-hidden="true"></i></span>
+                <div><strong>VITA</strong><small>YOGA CENTER · CONTROL</small></div>
             </div>
-        @endif
 
-        @if($errors->any())
-            <div class="alert alert-error">
-                ❌ {{ $errors->first() }}
+            <div class="admin-login-intro__content">
+                <span class="admin-internal-badge"><i class="fa-solid fa-lock" aria-hidden="true"></i> Khu vực nội bộ</span>
+                <h1>Quản trị trung tâm,<br><span>từ một nơi.</span></h1>
+                <p>Theo dõi lớp học, học viên và đơn đăng ký trong không gian vận hành dành riêng cho quản trị viên.</p>
+
+                <div class="admin-login-modules" aria-label="Các phân hệ quản trị">
+                    <div><span>01</span><p><strong>Đơn đăng ký</strong><small>Theo dõi và xét duyệt</small></p></div>
+                    <div><span>02</span><p><strong>Lớp Yoga</strong><small>Lịch học và sĩ số</small></p></div>
+                    <div><span>03</span><p><strong>Học viên</strong><small>Hồ sơ và trạng thái</small></p></div>
+                </div>
             </div>
-        @endif
 
-        <form method="POST" action="{{ route('admin.login.submit') }}">
-            @csrf
-            <div class="form-group">
-                <label for="username">👤 Tên đăng nhập</label>
-                <input type="text" id="username" name="username" required 
-                       placeholder="Nhập tên đăng nhập" value="{{ old('username') }}">
+            <div class="admin-system-note">
+                <span class="admin-system-note__pulse"></span>
+                <div><strong>Cổng quản trị được bảo vệ</strong><small>Chỉ tài khoản có quyền Admin mới có thể truy cập.</small></div>
             </div>
-            
-            <div class="form-group">
-                <label for="password">🔒 Mật khẩu</label>
-                <input type="password" id="password" name="password" required 
-                       placeholder="Nhập mật khẩu">
+        </aside>
+
+        <main class="admin-login-panel">
+            <div class="admin-login-mobile-brand">
+                <span><i class="fa-solid fa-leaf" aria-hidden="true"></i></span>
+                <strong>VITA CONTROL</strong>
             </div>
-            
-            <button type="submit" class="btn">
-                🚀 Đăng nhập
-            </button>
-        </form>
 
-        <div class="demo-info">
-            <strong>💡 Demo Account:</strong><br>
-            Tên đăng nhập: <code>admin</code><br>
-            Mật khẩu: <code>123456</code>
-        </div>
+            <div class="admin-login-form-wrap">
+                <div class="admin-login-heading">
+                    <span class="admin-login-heading__icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+                    <div><p>Secure access</p><h2>Đăng nhập quản trị</h2></div>
+                </div>
+                <p class="admin-login-description">Sử dụng tên đăng nhập quản trị được cấp để tiếp tục.</p>
 
-        <div class="login-footer">
-            <a href="{{ route('dashboard') }}">← Quay lại trang chính</a>
-        </div>
+                @if(session('success'))
+                    <div class="admin-login-alert admin-login-alert--success" role="status">
+                        <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                        <span>{{ session('success') }}</span>
+                    </div>
+                @endif
+
+                @if($errors->any())
+                    <div class="admin-login-alert admin-login-alert--error" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        <span>{{ $errors->first() }}</span>
+                    </div>
+                @endif
+
+                <form id="adminLoginForm" class="admin-login-form" method="POST" action="{{ route('admin.login.submit') }}" autocomplete="on">
+                    @csrf
+                    <div class="admin-login-field">
+                        <label for="username">Tên đăng nhập</label>
+                        <div class="admin-login-control">
+                            <i class="fa-regular fa-user" aria-hidden="true"></i>
+                            <input type="text" id="username" name="username" required maxlength="255" autocomplete="username" autofocus placeholder="Nhập tên đăng nhập" value="{{ old('username') }}">
+                        </div>
+                    </div>
+
+                    <div class="admin-login-field">
+                        <div class="admin-login-field__label">
+                            <label for="adminPassword">Mật khẩu</label>
+                            <span>Phân biệt chữ hoa và chữ thường</span>
+                        </div>
+                        <div class="admin-login-control">
+                            <i class="fa-solid fa-key" aria-hidden="true"></i>
+                            <input type="password" id="adminPassword" name="password" required autocomplete="current-password" placeholder="Nhập mật khẩu">
+                            <button type="button" class="admin-password-toggle" id="adminPasswordToggle" aria-label="Hiện mật khẩu" aria-pressed="false">
+                                <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="admin-login-submit" id="adminLoginSubmit">
+                        Truy cập hệ thống <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </form>
+
+                <div class="admin-login-security">
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                    <p>Không chia sẻ tài khoản quản trị. Mọi thao tác trong hệ thống có thể ảnh hưởng đến dữ liệu vận hành.</p>
+                </div>
+            </div>
+
+            <footer class="admin-login-footer">
+                <a href="{{ route('dashboard') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Trở về website VITA</a>
+                <span>© {{ date('Y') }} VITA Yoga Center</span>
+            </footer>
+        </main>
     </div>
+
+    <script src="{{ asset('js/admin-login.js') }}"></script>
 </body>
 </html>

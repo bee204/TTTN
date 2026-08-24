@@ -1,48 +1,103 @@
 @extends('layouts.app')
 
-@section('title', 'User Dashboard - Yoga/Gym Center')
+@section('title', 'Sống khỏe mỗi ngày - VITA Yoga Center')
 
 @section('content')
-<section class="hero">
-    <h2>Chào mừng đến với Yoga/Gym Center</h2>
-    <p>Khám phá hành trình tìm lại sự cân bằng và khỏe mạnh cho cơ thể và tâm hồn</p>
-    <a href="{{ route('register') }}" class="btn btn-primary">Đăng ký ngay</a>
-</section>
+<div class="health-dashboard">
+    <section class="health-hero">
+        <div class="health-hero__content">
+            <span class="health-eyebrow">
+                <i class="fa-solid fa-leaf" aria-hidden="true"></i>
+                Không gian luyện tập dành cho bạn
+            </span>
+            <h1>Khỏe hơn mỗi ngày,<br><span>vững vàng từ bên trong.</span></h1>
+            <p>
+                Chọn lớp học phù hợp với thể trạng, lịch trình và mục tiêu của bạn.
+                Chúng tôi đồng hành từ buổi tập đầu tiên đến khi vận động trở thành thói quen.
+            </p>
+            <div class="health-hero__actions">
+                <a href="{{ route('classes') }}" class="health-btn health-btn--primary">
+                    Khám phá lớp học <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </a>
+                <a href="{{ route('teachers') }}" class="health-btn health-btn--secondary">
+                    Gặp gỡ giáo viên Yoga
+                </a>
+            </div>
+            <div class="health-trust">
+                <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Lộ trình phù hợp</span>
+                <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Lịch học linh hoạt</span>
+                <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Theo sát tiến độ</span>
+            </div>
+        </div>
 
-<section class="features">
-    <div class="feature">
-        <h3>🧘‍♀️ Yoga Chuyên nghiệp</h3>
-        <p>Các lớp Yoga từ cơ bản đến nâng cao với giảng viên có chứng chỉ quốc tế</p>
-    </div>
-    <div class="feature">
-        <h3>💪 Phòng tập Gym hiện đại</h3>
-        <p>Trang thiết bị tập luyện hiện đại, đa dạng phục vụ mọi nhu cầu tập luyện</p>
-    </div>
-    <div class="feature">
-        <h3>⏰ Lịch học linh hoạt</h3>
-        <p>Đa dạng khung giờ từ sáng sớm đến tối muộn, phù hợp mọi lịch trình</p>
-    </div>
-    <div class="feature">
-        <h3>👨‍⚕️ Hỗ trợ chuyên môn</h3>
-        <p>Đội ngũ huấn luyện viên chuyên nghiệp, tận tâm hỗ trợ học viên</p>
-    </div>
-</section>
+        <div class="wellness-card" aria-label="Thông điệp sức khỏe hôm nay">
+            <div class="wellness-card__orb wellness-card__orb--one"></div>
+            <div class="wellness-card__orb wellness-card__orb--two"></div>
+            <div class="wellness-card__icon">
+                <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
+            </div>
+            <p class="wellness-card__label">Nhịp sống lành mạnh</p>
+            <h2>Bắt đầu từ một buổi tập.</h2>
+            <p>Thay đổi nhỏ, được lặp lại đều đặn, sẽ tạo nên một cơ thể khỏe mạnh và tinh thần cân bằng.</p>
+            <div class="wellness-card__progress">
+                <div class="wellness-card__progress-head">
+                    <span>Mục tiêu hôm nay</span>
+                    <strong>60 phút vận động</strong>
+                </div>
+                <div class="wellness-card__track"><span></span></div>
+            </div>
+        </div>
+    </section>
 
-<section class="card">
-    <h2 style="text-align: center; color: #667eea; margin-bottom: 30px;">Tại sao chọn chúng tôi?</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px;">
-        <div style="text-align: center; min-height: 120px; display: flex; flex-direction: column; justify-content: center; padding: 20px; background: rgba(102, 126, 234, 0.05); border-radius: 12px;">
-            <h4 style="color: #667eea; margin-bottom: 12px; font-size: 1.2rem;">🏆 Kinh nghiệm 10+ năm</h4>
-            <p style="color: #666; line-height: 1.3; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Hơn 10 năm hoạt động và phát triển trong lĩnh vực Yoga/Gym</p>
+    <section class="health-stats" aria-label="Thống kê trung tâm">
+        <div class="health-stat"><strong>{{ number_format($classesCount) }}</strong><span>Lớp học đang có</span></div>
+        <div class="health-stat"><strong>{{ number_format($teachersCount) }}</strong><span>Giáo viên Yoga</span></div>
+        <div class="health-stat"><strong>{{ number_format($membersCount) }}</strong><span>Thành viên đồng hành</span></div>
+        <div class="health-stat"><strong>{{ number_format($registrationsCount) }}</strong><span>Lượt đăng ký</span></div>
+    </section>
+
+    <section class="health-section">
+        <div class="health-section__heading">
+            <div>
+                <span class="health-eyebrow">Luyện tập theo cách của bạn</span>
+                <h2>Một nơi cho mọi mục tiêu sức khỏe</h2>
+            </div>
+            <p>Từ thư giãn, cải thiện độ dẻo dai đến xây dựng sức mạnh, bạn luôn có một điểm bắt đầu phù hợp.</p>
         </div>
-        <div style="text-align: center; min-height: 120px; display: flex; flex-direction: column; justify-content: center; padding: 20px; background: rgba(102, 126, 234, 0.05); border-radius: 12px;">
-            <h4 style="color: #667eea; margin-bottom: 12px; font-size: 1.2rem;">👥 Cộng đồng 1000+ thành viên</h4>
-            <p style="color: #666; line-height: 1.3; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Gia nhập cộng đồng những người yêu thích sức khỏe và thể thao</p>
+
+        <div class="health-features">
+            <article class="health-feature">
+                <div class="health-feature__icon health-feature__icon--mint"><i class="fa-solid fa-spa" aria-hidden="true"></i></div>
+                <span>01</span><h3>Yoga cân bằng</h3>
+                <p>Cải thiện độ dẻo dai, hơi thở và sự tập trung qua lộ trình từ cơ bản đến nâng cao.</p>
+            </article>
+            <article class="health-feature">
+                <div class="health-feature__icon health-feature__icon--lime"><i class="fa-solid fa-person" aria-hidden="true"></i></div>
+                <span>02</span><h3>Power Yoga</h3>
+                <p>Chuỗi động tác giàu năng lượng giúp cải thiện sức mạnh, sức bền và khả năng kiểm soát cơ thể.</p>
+            </article>
+            <article class="health-feature">
+                <div class="health-feature__icon health-feature__icon--sand"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></div>
+                <span>03</span><h3>Lịch học linh hoạt</h3>
+                <p>Nhiều khung giờ trong ngày để việc chăm sóc sức khỏe dễ dàng hòa vào nhịp sống của bạn.</p>
+            </article>
+            <article class="health-feature">
+                <div class="health-feature__icon health-feature__icon--blue"><i class="fa-solid fa-user-shield" aria-hidden="true"></i></div>
+                <span>04</span><h3>Đồng hành chuyên môn</h3>
+                <p>Giáo viên theo sát kỹ thuật và hỗ trợ bạn duy trì động lực trong từng buổi tập.</p>
+            </article>
         </div>
-        <div style="text-align: center; min-height: 120px; display: flex; flex-direction: column; justify-content: center; padding: 20px; background: rgba(102, 126, 234, 0.05); border-radius: 12px;">
-            <h4 style="color: #667eea; margin-bottom: 12px; font-size: 1.2rem;">💰 Giá cả hợp lý</h4>
-            <p style="color: #666; line-height: 1.3; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Các gói tập đa dạng với mức giá phù hợp mọi đối tượng</p>
+    </section>
+
+    <section class="health-cta">
+        <div>
+            <span class="health-eyebrow health-eyebrow--light">Sẵn sàng bắt đầu?</span>
+            <h2>Chọn một lớp học phù hợp ngay hôm nay.</h2>
+            <p>Một quyết định nhỏ hôm nay có thể tạo nên phiên bản khỏe mạnh hơn của bạn ngày mai.</p>
         </div>
-    </div>
-</section>
+        <a href="{{ route('register') }}" class="health-btn health-btn--light">
+            Đăng ký lớp học <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </a>
+    </section>
+</div>
 @endsection

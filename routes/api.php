@@ -11,6 +11,7 @@ use App\Http\Controllers\PublicCatalogController;
 use App\Http\Controllers\UnifiedRegistrationController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ClassReviewController;
+use App\Http\Controllers\AccountController;
 
 Route::prefix('public')->group(function () {
     Route::get('/teachers', [PublicCatalogController::class, 'teachers']);
@@ -19,7 +20,10 @@ Route::prefix('public')->group(function () {
     Route::get('/classes/{class}',  [PublicCatalogController::class, 'class']);
 });
 
-// Allow registration without authentication
+// LEGACY / UNUSED BY CURRENT UI:
+// Route này bị POST registrations của apiResource trong nhóm admin bên dưới ghi đè.
+// Không coi đây là luồng đăng ký hiện hành và không mở public trước khi xử lý các
+// vấn đề validation/ownership được ghi tại docs/LEGACY_UNUSED.md.
 Route::post('/registrations', [UnifiedRegistrationController::class, 'store']);
 
 Route::get('/ping', function () {
@@ -39,6 +43,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    Route::prefix('account')->middleware('role:customer')->group(function () {
+        Route::get('/profile', [AccountController::class, 'show']);
+        Route::put('/profile', [AccountController::class, 'updateProfile']);
+        Route::put('/password', [AccountController::class, 'updatePassword'])->middleware('throttle:6,1');
+    });
+
 
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('teachers', TeacherController::class);
@@ -55,7 +65,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('attendance', AttendanceController::class)->only(['index', 'store', 'update']);
     });
 
-    // CN02: class reviews and ranking
+    // CN02 API vẫn tồn tại nhưng giao diện Blade hiện không gọi các endpoint này.
+    // Luồng review của demo dùng registered.class.review trong routes/web.php.
+    // Không dùng API này cho client mới trước khi bổ sung ownership/policy; xem docs/LEGACY_UNUSED.md.
     Route::get('/class-reviews/ranking', [ClassReviewController::class, 'ranking']);
     Route::apiResource('class-reviews', ClassReviewController::class)->only(['index', 'store', 'update', 'destroy']);
 

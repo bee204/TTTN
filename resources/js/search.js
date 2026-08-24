@@ -41,7 +41,7 @@ function searchClassFunc() {
             message.style.color = '#667eea';
             message.innerHTML = `
                 <h3>🔍 Không tìm thấy lớp học nào</h3>
-                <p>Hãy thử tìm kiếm với từ khóa khác như "yoga", "gym", "sáng", "tối"...</p>
+                <p>Hãy thử tìm kiếm với từ khóa khác như "yoga", "cơ bản", "sáng", "tối"...</p>
             `;
             classGrid.parentNode.appendChild(message);
         }

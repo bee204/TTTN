@@ -1,3 +1,8 @@
+{{--
+    LEGACY / UNUSED: không có GET route hoặc link điều hướng tới view này.
+    Form POST hiện lỗi vì handler redirect tới named route `contact` không tồn tại.
+    Xem docs/LEGACY_UNUSED.md trước khi tái sử dụng.
+--}}
 @extends('layouts.app')
 @section('content')
 <div class="row justify-content-center">
