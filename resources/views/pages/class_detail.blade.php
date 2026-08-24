@@ -1,299 +1,159 @@
 @extends('layouts.app')
 
-@section('title', 'Chi tiết lớp học - ' . $class->name)
+@section('title', $class->name . ' - VITA Yoga Center')
 
 @push('styles')
-<style>
-.class-detail-container {
-    max-width: 1200px;
-    margin: 40px auto;
-    padding: 0 20px;
-}
-
-.class-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 40px;
-    border-radius: 15px;
-    margin-bottom: 30px;
-    text-align: center;
-}
-
-.class-header h1 {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-    font-weight: 700;
-}
-
-.class-header .class-meta {
-    font-size: 1.1rem;
-    opacity: 0.9;
-}
-
-.class-content {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 30px;
-    margin-bottom: 40px;
-}
-
-.class-info {
-    background: white;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-}
-
-.class-sidebar {
-    background: white;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-    height: fit-content;
-}
-
-.info-section {
-    margin-bottom: 30px;
-}
-
-.info-section h3 {
-    color: #333;
-    font-size: 1.3rem;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.info-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.info-item strong {
-    color: #555;
-    min-width: 80px;
-}
-
-.teacher-card {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    margin-bottom: 20px;
-}
-
-.teacher-avatar {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.5rem;
-    font-weight: bold;
-}
-
-.teacher-info h4 {
-    margin: 0 0 5px 0;
-    color: #333;
-}
-
-.teacher-info p {
-    margin: 0;
-    color: #666;
-    font-size: 0.9rem;
-}
-
-.availability {
-    text-align: center;
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-}
-
-.availability.available {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-.availability.full {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.register-btn {
-    width: 100%;
-    padding: 15px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.register-btn:hover {
-    transform: translateY(-2px);
-}
-
-.register-btn:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-    transform: none;
-}
-
-@media (max-width: 768px) {
-    .class-content {
-        grid-template-columns: 1fr;
-    }
-    
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .class-header h1 {
-        font-size: 2rem;
-    }
-}
-</style>
+<link rel="stylesheet" href="{{ asset('css/class-detail.css') }}">
 @endpush
 
 @section('content')
-<div class="class-detail-container">
-    <div class="class-header">
-        <h1>{{ $class->name }}</h1>
-        <div class="class-meta">
-            <span>🧘‍♀️ {{ $class->teacher->name }}</span> • 
-            <span>📅 {{ $class->lich_hoc }}</span> • 
-            <span>📍 {{ $class->location }}</span>
-        </div>
-    </div>
+@php
+    $availableSlots = max(0, $availableSlots);
+    $registeredCount = $registeredStudents->count();
+    $occupancyPercent = $class->quantity > 0
+        ? min(100, (int) round($registeredCount / $class->quantity * 100))
+        : 100;
+    $isEnded = $class->end_date->lt(today());
+    $isStarted = ! $isEnded && $class->start_date->lte(today());
+@endphp
 
-    <div class="class-content">
-        <div class="class-info">
-            <div class="info-section">
-                <h3>📋 Thông tin lớp học</h3>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span>📅</span>
-                        <div>
-                            <strong>Lịch học:</strong>
-                            {{ $class->lich_hoc }}
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <span>⏰</span>
-                        <div>
-                            <strong>Giờ học:</strong>
-                            {{ $class->start_time }} - {{ $class->end_time }}
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <span>📆</span>
-                        <div>
-                            <strong>Thời gian khóa học:</strong>
-                            {{ \Carbon\Carbon::parse($class->start_date)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($class->end_date)->format('d/m/Y') }}
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <span>📍</span>
-                        <div>
-                            <strong>Địa điểm:</strong>
-                            {{ $class->location }}
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <span>💰</span>
-                        <div>
-                            <strong>Học phí:</strong>
-                            {{ number_format($class->price, 0, ',', '.') }} VNĐ
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <span>📊</span>
-                        <div>
-                            <strong>Sĩ số:</strong>
-                            {{ $registeredStudents->count() }}/{{ $class->quantity }} học viên
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="yoga-class-detail">
+    <nav class="class-breadcrumb" aria-label="Điều hướng">
+        <a href="{{ route('classes') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách lớp Yoga</a>
+        <span aria-hidden="true">/</span>
+        <span>{{ $class->name }}</span>
+    </nav>
 
-            <div class="info-section">
-                <h3>👨‍🏫 Giảng viên</h3>
-                <div class="teacher-card">
-                    <div class="teacher-avatar">
-                        {{ substr($class->teacher->name, 0, 1) }}
-                    </div>
-                    <div class="teacher-info">
-                        <h4>{{ $class->teacher->name }}</h4>
-                        <p>📞 {{ $class->teacher->phone }} • ✉️ {{ $class->teacher->email }}</p>
-                        <p>🎓 {{ $class->teacher->exp_year }} năm kinh nghiệm</p>
-                        <p>{{ $class->teacher->description }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="info-section">
-                <h3>📝 Mô tả lớp học</h3>
-                <p style="line-height: 1.6; color: #666;">
-                    {{ $class->description ?: 'Chưa có mô tả chi tiết cho lớp học này.' }}
-                </p>
-            </div>
-        </div>
-
-        <div class="class-sidebar">
-            <div class="availability {{ $availableSlots > 0 ? 'available' : 'full' }}">
-                @if($availableSlots > 0)
-                    <h4>✅ Còn {{ $availableSlots }} chỗ trống</h4>
-                    <p>Đăng ký ngay để không bỏ lỡ cơ hội!</p>
+    <section class="class-detail-hero">
+        <div class="class-detail-hero__main">
+            <div class="class-detail-hero__topline">
+                <span class="class-detail-eyebrow"><i class="fa-solid fa-leaf" aria-hidden="true"></i> Lớp Yoga tại VITA</span>
+                @if($isEnded)
+                    <span class="detail-status detail-status--muted">Đã kết thúc</span>
+                @elseif($isStarted)
+                    <span class="detail-status detail-status--active">Đang diễn ra</span>
+                @elseif($availableSlots === 0)
+                    <span class="detail-status detail-status--full">Đã đủ chỗ</span>
                 @else
-                    <h4>❌ Lớp học đã đầy</h4>
-                    <p>Vui lòng chọn lớp học khác hoặc liên hệ để được hỗ trợ.</p>
+                    <span class="detail-status detail-status--open">Đang nhận đăng ký</span>
                 @endif
             </div>
 
-            <button class="register-btn" 
-                    onclick="window.location.href='{{ route('register', ['class_id' => $class->id]) }}'"
-                    {{ $availableSlots <= 0 || $registrationStatus ? 'disabled' : '' }}>
-                @if($registrationStatus === 'CONFIRMED')
-                    ✅ Bạn đã được duyệt lớp này
-                @elseif($registrationStatus === 'PENDING')
-                    ⏳ Đang chờ duyệt
-                @elseif($availableSlots > 0)
-                    📝 Đăng ký ngay
-                @else
-                    😔 Lớp đã đầy
-                @endif
-            </button>
+            <h1>{{ $class->name }}</h1>
+            <p>{{ $class->description ?: 'Một lớp Yoga được thiết kế để giúp bạn cải thiện sức khỏe, hơi thở và sự cân bằng.' }}</p>
 
+            <div class="class-detail-hero__teacher">
+                <span>{{ mb_strtoupper(mb_substr($class->teacher?->name ?? 'V', 0, 1)) }}</span>
+                <div>
+                    <small>Giáo viên hướng dẫn</small>
+                    <strong>{{ $class->teacher?->name ?? 'Đang cập nhật' }}</strong>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div style="text-align: center; margin-top: 40px;">
-        <a href="{{ route('classes') }}" class="btn" style="padding: 12px 30px; background: #f8f9fa; color: #495057; text-decoration: none; border-radius: 8px; display: inline-block;">
-            ← Quay lại danh sách lớp học
-        </a>
+        <div class="class-detail-hero__mark" aria-hidden="true">
+            <span><i class="fa-solid fa-spa"></i></span>
+            <small>Mind · Body · Balance</small>
+        </div>
+    </section>
+
+    <section class="class-essential-grid" aria-label="Thông tin chính của lớp học">
+        <article class="class-essential class-essential--schedule">
+            <span class="class-essential__icon"><i class="fa-regular fa-calendar" aria-hidden="true"></i></span>
+            <div><small>Lịch học</small><strong>{{ $class->lich_hoc }}</strong></div>
+        </article>
+        <article class="class-essential class-essential--time">
+            <span class="class-essential__icon"><i class="fa-regular fa-clock" aria-hidden="true"></i></span>
+            <div><small>Khung giờ</small><strong>{{ $class->start_time->format('H:i') }} – {{ $class->end_time->format('H:i') }}</strong></div>
+        </article>
+        <article class="class-essential">
+            <span class="class-essential__icon"><i class="fa-solid fa-location-dot" aria-hidden="true"></i></span>
+            <div><small>Địa điểm</small><strong>{{ $class->location }}</strong></div>
+        </article>
+        <article class="class-essential">
+            <span class="class-essential__icon"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></span>
+            <div><small>Thời gian khóa học</small><strong>{{ $class->start_date->format('d/m/Y') }} – {{ $class->end_date->format('d/m/Y') }}</strong></div>
+        </article>
+    </section>
+
+    <div class="class-detail-layout">
+        <div class="class-detail-main">
+            <section class="class-detail-panel class-about">
+                <div class="class-panel-heading">
+                    <span>01</span>
+                    <div><small>Về lớp học</small><h2>Thông tin giới thiệu</h2></div>
+                </div>
+                <p class="class-about__copy">{{ $class->description ?: 'Thông tin chi tiết về nội dung lớp học đang được cập nhật.' }}</p>
+            </section>
+
+            <section class="class-detail-panel class-teacher-panel">
+                <div class="class-panel-heading">
+                    <span>02</span>
+                    <div><small>Người đồng hành</small><h2>Giáo viên hướng dẫn</h2></div>
+                </div>
+
+                @if($class->teacher)
+                    <div class="class-teacher-card">
+                        <div class="class-teacher-card__avatar">{{ mb_strtoupper(mb_substr($class->teacher->name, 0, 1)) }}</div>
+                        <div class="class-teacher-card__content">
+                            <span>Giáo viên Yoga</span>
+                            <h3>{{ $class->teacher->name }}</h3>
+                            <p>{{ $class->teacher->description ?: 'Giáo viên sẽ trực tiếp hướng dẫn kỹ thuật và đồng hành cùng học viên trong khóa học.' }}</p>
+                            <div class="class-teacher-card__meta">
+                                <span><i class="fa-solid fa-award" aria-hidden="true"></i> {{ $class->teacher->exp_year }} năm kinh nghiệm</span>
+                                <span><i class="fa-solid fa-phone" aria-hidden="true"></i> {{ $class->teacher->phone }}</span>
+                            </div>
+                        </div>
+                        <a href="{{ route('teacher.detail', $class->teacher->id) }}" target="_blank" rel="noopener noreferrer" aria-label="Xem thông tin giáo viên {{ $class->teacher->name }} trong tab mới">
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                @else
+                    <p class="class-teacher-empty">Thông tin giáo viên đang được cập nhật.</p>
+                @endif
+            </section>
+        </div>
+
+        <aside class="class-enrollment-card">
+            <span class="class-enrollment-card__label">Học phí</span>
+            <div class="class-enrollment-card__price">
+                <strong>{{ number_format($class->price, 0, ',', '.') }}</strong>
+                <span>đ/tháng</span>
+            </div>
+            <p>Học phí niêm yết cho lớp {{ $class->name }}.</p>
+
+            <div class="class-capacity-detail">
+                <div class="class-capacity-detail__head">
+                    <span>Tình trạng lớp</span>
+                    <strong>{{ $registeredCount }}/{{ $class->quantity }} học viên</strong>
+                </div>
+                <div class="class-capacity-detail__track"><span style="width: {{ $occupancyPercent }}%"></span></div>
+                <small>{{ $availableSlots > 0 ? 'Còn '.$availableSlots.' chỗ trống' : 'Lớp hiện không còn chỗ trống' }}</small>
+            </div>
+
+            <div class="class-enrollment-card__notice">
+                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                <span>Đăng ký sẽ được trung tâm xác nhận trước khi bạn bắt đầu khóa học.</span>
+            </div>
+
+            @if($registrationStatus === 'CONFIRMED')
+                <span class="class-enrollment-action class-enrollment-action--disabled"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Bạn đã được duyệt</span>
+            @elseif($registrationStatus === 'PENDING')
+                <span class="class-enrollment-action class-enrollment-action--disabled"><i class="fa-regular fa-clock" aria-hidden="true"></i> Đang chờ duyệt</span>
+            @elseif($isEnded)
+                <span class="class-enrollment-action class-enrollment-action--disabled">Khóa học đã kết thúc</span>
+            @elseif($isStarted)
+                <span class="class-enrollment-action class-enrollment-action--disabled">Khóa học đã bắt đầu</span>
+            @elseif($availableSlots === 0)
+                <span class="class-enrollment-action class-enrollment-action--disabled">Lớp đã đủ chỗ</span>
+            @else
+                <a href="{{ route('register', ['class_id' => $class->id]) }}" class="class-enrollment-action">
+                    Đăng ký lớp học <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            @endif
+
+            <a href="{{ route('classes') }}" class="class-enrollment-card__back">Xem các lớp Yoga khác</a>
+        </aside>
     </div>
 </div>
 @endsection

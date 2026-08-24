@@ -1,12 +1,12 @@
-# Báo Cáo Tiến Độ Dự Án Yoga/Gym Center Website
+# Báo Cáo Tiến Độ Dự Án VITA Yoga Center Website
 
 ## 📋 Tổng Quan Dự Án
 
-**Tên dự án:** Hệ thống quản lý trung tâm Yoga/Gym  
+**Tên dự án:** Hệ thống quản lý trung tâm Yoga
 **Công nghệ:** Laravel 12, PHP 8.2+, MySQL, Vite, Tailwind CSS, Bootstrap  
 **Thời gian:** 8 tuần (07/2025 - 09/2025)  
 **Trạng thái:** ✅ **HOÀN THÀNH** (100%)  
-**Mục tiêu:** Phát triển hệ thống quản lý toàn diện cho trung tâm Yoga/Gym với tính năng đăng ký lớp học, quản lý thành viên và admin
+**Mục tiêu:** Phát triển hệ thống quản lý toàn diện cho trung tâm Yoga với tính năng đăng ký lớp học, quản lý thành viên và admin
 
 ---
 

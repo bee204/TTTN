@@ -1,6 +1,12 @@
+{{--
+    LEGACY / UNUSED: màn admin login cũ, không có route hiện hành.
+    Admin dùng resources/views/admin/login.blade.php; học viên/giáo viên dùng
+    resources/views/pages/login_account.blade.php.
+    Xem docs/LEGACY_UNUSED.md.
+--}}
 @extends('layouts.app')
 
-@section('title', 'Đăng nhập Admin - Yoga/Gym Center')
+@section('title', 'Đăng nhập quản trị - VITA Yoga Center')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/login.css') }}">

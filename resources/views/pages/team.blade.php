@@ -1,3 +1,8 @@
+{{--
+    LEGACY / UNUSED: WebController::team() không được khai báo trong routes/web.php.
+    Trang giáo viên hiện hành là resources/views/pages/teachers.blade.php.
+    Xem docs/LEGACY_UNUSED.md.
+--}}
 @extends('layouts.app')
 @section('content')
 <div class="row">

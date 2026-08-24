@@ -1,4 +1,4 @@
-// Main JavaScript file for Yoga/Gym Center
+// Main JavaScript file for VITA Yoga Center
 
 // Smooth scrolling for internal links
 document.addEventListener('DOMContentLoaded', function() {
@@ -110,18 +110,21 @@ window.addEventListener('scroll', function() {
     if (!backToTop) {
         const btn = document.createElement('button');
         btn.id = 'backToTop';
-        btn.innerHTML = '↑';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Cuộn lên đầu trang');
+        btn.setAttribute('title', 'Lên đầu trang');
+        btn.innerHTML = '<i class="fa-solid fa-arrow-up" aria-hidden="true"></i>';
         btn.style.cssText = `
             position: fixed;
             bottom: 30px;
             right: 30px;
-            width: 50px;
-            height: 50px;
+            width: 52px;
+            height: 52px;
             border: none;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: #143e36;
             color: white;
-            font-size: 20px;
+            box-shadow: 0 10px 24px rgba(20, 62, 54, .24);
             cursor: pointer;
             display: none;
             z-index: 1000;
@@ -140,7 +143,7 @@ window.addEventListener('scroll', function() {
     
     const btn = document.getElementById('backToTop');
     if (window.pageYOffset > 300) {
-        btn.style.display = 'block';
+        btn.style.display = 'grid';
     } else {
         btn.style.display = 'none';
     }

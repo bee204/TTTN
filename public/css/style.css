@@ -7,10 +7,30 @@
 
 body {
     font-family: 'Noto Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #333;
+    background-color: #e8f0eb;
+    background-image:
+        radial-gradient(circle at 8% 4%, rgba(181, 215, 197, .42), transparent 27rem),
+        radial-gradient(circle at 92% 22%, rgba(218, 231, 184, .28), transparent 24rem),
+        linear-gradient(180deg, #edf4ef 0%, #e5eee9 58%, #edf3ef 100%);
+    background-attachment: fixed;
+    color: #17352f;
     line-height: 1.6;
     min-height: 100vh;
+}
+
+#backToTop {
+    align-items: center;
+    justify-content: center;
+}
+
+#backToTop i {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+#backToTop:hover {
+    background: #0e322b !important;
+    transform: translateY(-3px);
 }
 
 .container {
@@ -73,27 +93,27 @@ nav a:hover, nav a.active {
 
 /* Main Content */
 main {
-    padding: 40px 20px;
+    padding: 0 20px 56px;
     min-height: calc(100vh - 200px);
 }
 
 .page-title {
     text-align: center;
     margin-bottom: 40px;
-    color: white;
+    color: #173f37;
     font-size: 2.2rem;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    text-shadow: none;
 }
 
 /* Cards */
 .card {
-    background: rgba(255, 255, 255, 0.95);
+    background: #fff;
     border-radius: 15px;
     padding: 30px;
     margin: 20px 0;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    box-shadow: 0 12px 36px rgba(25, 70, 60, .08);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid #dfebe6;
 }
 
 /* Forms */
@@ -129,13 +149,13 @@ main {
 .form-group select:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #2b806d;
+    box-shadow: 0 0 0 3px rgba(43, 128, 109, .12);
 }
 
 /* Buttons */
 .btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #237461;
     color: white;
     border: none;
     padding: 12px 30px;
@@ -151,11 +171,11 @@ main {
 
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 20px rgba(35, 116, 97, .24);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #237461;
 }
 
 .btn-danger {
@@ -396,11 +416,11 @@ table tr:hover {
 
 /* Footer */
 footer {
-    background: rgba(0,0,0,0.8);
+    background: #102f29;
     color: white;
     text-align: center;
     padding: 30px 0;
-    margin-top: 50px;
+    margin-top: 0;
     font-family: 'Noto Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
 

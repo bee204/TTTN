@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AccountController;
 
 // Public routes for users (no authentication required)
 Route::get('/', [WebController::class, 'dashboard'])->name('dashboard');
@@ -21,6 +22,14 @@ Route::get('/teacher/login', [WebController::class, 'teacherLogin'])->name('teac
 Route::post('/teacher/login', [WebController::class, 'loginAccountSubmit'])->name('teacher.login.submit');
 Route::post('/account/logout', [WebController::class, 'logoutAccount'])->middleware('auth')->name('account.logout');
 Route::get('/account', [WebController::class, 'accountProfile'])->middleware('auth')->name('account.profile');
+Route::middleware(['auth', 'role:customer'])->group(function () {
+    Route::put('/account/profile', [AccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])
+        ->middleware('throttle:6,1')
+        ->name('account.password.update');
+});
+// LEGACY / UNUSED BY CURRENT UI: không có GET /contact hoặc link điều hướng tới form cũ.
+// Handler còn redirect tới route `contact` không tồn tại; xem docs/LEGACY_UNUSED.md.
 Route::post('/contact', [WebController::class, 'contactSend'])->name('contact.send');
 Route::get('/registered-classes', [WebController::class, 'registeredClasses'])->middleware('auth')->name('registered.classes');
 Route::post('/registered-classes/{id}/cancel', [WebController::class, 'cancelRegistration'])->middleware('auth')->name('registered.class.cancel');
@@ -49,6 +58,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Protected admin routes
     Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard/analytics', [AdminController::class, 'dashboardAnalytics'])->name('dashboard.analytics');
         Route::post('/logout', [AdminController::class, 'logout'])->name('logout');
         
         // Registration management

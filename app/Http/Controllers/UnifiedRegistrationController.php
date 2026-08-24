@@ -11,6 +11,13 @@ use App\Models\Registration;
 //use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @deprecated Không được giao diện hiện tại sử dụng.
+ *
+ * POST /api/registrations hiện được route admin apiResource xử lý. Không kích hoạt
+ * controller này thành public trước khi sửa ownership, schema và idempotency.
+ * Xem docs/LEGACY_UNUSED.md.
+ */
 class UnifiedRegistrationController extends Controller
 {
     public function store(UnifiedRegistrationRequest $request)
@@ -87,5 +94,4 @@ class UnifiedRegistrationController extends Controller
         });
     }
 }
-
 

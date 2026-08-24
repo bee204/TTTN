@@ -1,4 +1,4 @@
-// Main JavaScript file for Yoga/Gym Center
+// Main JavaScript file for VITA Yoga Center
 
 // Smooth scrolling for internal links
 document.addEventListener('DOMContentLoaded', function() {

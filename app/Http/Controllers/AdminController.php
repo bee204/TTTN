@@ -18,7 +18,16 @@ class AdminController extends Controller
     // Show create registration form (admin)
     public function showCreateRegistration()
     {
-        $classes = YogaClass::all();
+        $classes = YogaClass::with('teacher')
+            ->withCount([
+                'registrations as confirmed_registrations_count' => fn ($query) => $query
+                    ->where('status', RegistrationStatus::CONFIRMED->value),
+            ])
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (YogaClass $class) => $class->quantity > $class->confirmed_registrations_count)
+            ->values();
+
         return view('admin.registration_create', compact('classes'));
     }
     // Show admin login page
@@ -67,6 +76,7 @@ class AdminController extends Controller
             'registrations' => Registration::count(),
             'pending_registrations' => Registration::where('status', RegistrationStatus::PENDING->value)->count(),
             'approved_registrations' => Registration::where('status', RegistrationStatus::CONFIRMED->value)->count(),
+            'cancelled_registrations' => Registration::where('status', RegistrationStatus::CANCELLED->value)->count(),
         ];
 
         $recentRegistrations = Registration::with(['customer', 'class'])
@@ -77,19 +87,174 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('stats', 'recentRegistrations'));
     }
 
+    public function dashboardAnalytics(Request $request)
+    {
+        $validated = $request->validate([
+            'period' => ['nullable', 'integer', 'in:30,90,180,365'],
+            'revenue_months' => ['nullable', 'integer', 'in:6,12'],
+        ]);
+
+        $period = (int) ($validated['period'] ?? 90);
+        $revenueMonths = (int) ($validated['revenue_months'] ?? 6);
+        $end = now()->endOfDay();
+        $start = now()->subDays($period - 1)->startOfDay();
+        $previousStart = $start->copy()->subDays($period);
+        $previousEnd = $start->copy()->subSecond();
+
+        $newCustomers = Customer::whereBetween('created_at', [$start, $end])->count();
+        $previousCustomers = Customer::whereBetween('created_at', [$previousStart, $previousEnd])->count();
+        $totalCustomers = Customer::count();
+
+        $newClasses = YogaClass::whereBetween('created_at', [$start, $end])->count();
+        $previousClasses = YogaClass::whereBetween('created_at', [$previousStart, $previousEnd])->count();
+        $totalClasses = YogaClass::count();
+
+        $today = today();
+        $classLifecycle = [
+            'active' => YogaClass::whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today)->count(),
+            'upcoming' => YogaClass::whereDate('start_date', '>', $today)->count(),
+            'ended' => YogaClass::whereDate('end_date', '<', $today)->count(),
+        ];
+
+        $teacherClassCounts = YogaClass::query()
+            ->with('teacher:id,name')
+            ->whereDate('start_date', '<=', $end)
+            ->whereDate('end_date', '>=', $start)
+            ->get()
+            ->groupBy('teacher_id')
+            ->map(fn ($classes) => [
+                'name' => $classes->first()->teacher?->name ?? 'Chưa phân công',
+                'value' => $classes->count(),
+            ])
+            ->sortByDesc('value')
+            ->values();
+
+        $totalTeacherAssignments = $teacherClassCounts->sum('value');
+        $teacherDistribution = $teacherClassCounts->take(8)->values()->map(fn ($item) => [
+            'name' => $item['name'],
+            'value' => $item['value'],
+            'rate' => $totalTeacherAssignments > 0 ? round($item['value'] / $totalTeacherAssignments * 100, 1) : 0,
+        ]);
+
+        if ($teacherClassCounts->count() > 8) {
+            $otherCount = $teacherClassCounts->slice(8)->sum('value');
+            $teacherDistribution->push([
+                'name' => 'Giáo viên khác',
+                'value' => $otherCount,
+                'rate' => $totalTeacherAssignments > 0 ? round($otherCount / $totalTeacherAssignments * 100, 1) : 0,
+            ]);
+        }
+
+        $revenueStart = now()->startOfMonth()->subMonths($revenueMonths - 1);
+        $revenueByMonth = Registration::query()
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->whereBetween('created_at', [$revenueStart, $end])
+            ->get(['final_price', 'created_at'])
+            ->groupBy(fn (Registration $registration) => $registration->created_at->format('Y-m'))
+            ->map(fn ($registrations) => (float) $registrations->sum('final_price'));
+
+        $revenue = collect(range(0, $revenueMonths - 1))->map(function ($offset) use ($revenueStart, $revenueByMonth) {
+            $month = $revenueStart->copy()->addMonths($offset);
+
+            return [
+                'key' => $month->format('Y-m'),
+                'label' => 'T'.$month->format('n').'/'.$month->format('y'),
+                'value' => round((float) ($revenueByMonth[$month->format('Y-m')] ?? 0), 2),
+            ];
+        });
+
+        $currentMonthStart = now()->startOfMonth();
+        $previousMonthStart = now()->subMonthNoOverflow()->startOfMonth();
+        $previousMonthEnd = now()->subMonthNoOverflow()->endOfMonth();
+        $currentMonthRevenue = (float) Registration::query()
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->whereBetween('created_at', [$currentMonthStart, $end])
+            ->sum('final_price');
+        $previousMonthRevenue = (float) Registration::query()
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->whereBetween('created_at', [$previousMonthStart, $previousMonthEnd])
+            ->sum('final_price');
+        $elapsedDays = max(1, now()->day);
+        $daysInMonth = now()->daysInMonth;
+        $forecastRevenue = round($currentMonthRevenue / $elapsedDays * $daysInMonth, 2);
+        $forecastChange = $previousMonthRevenue > 0
+            ? round(($forecastRevenue - $previousMonthRevenue) / $previousMonthRevenue * 100, 1)
+            : ($forecastRevenue > 0 ? 100 : 0);
+
+        return response()->json([
+            'meta' => [
+                'period' => $period,
+                'period_label' => $period === 365 ? '12 tháng qua' : $period.' ngày qua',
+                'revenue_months' => $revenueMonths,
+                'updated_at' => now()->format('H:i d/m/Y'),
+            ],
+            'growth' => [
+                'customers' => $this->growthMetric($newCustomers, $previousCustomers, $totalCustomers),
+                'classes' => $this->growthMetric($newClasses, $previousClasses, $totalClasses),
+            ],
+            'classes' => [
+                'lifecycle' => $classLifecycle,
+                'total' => array_sum($classLifecycle),
+            ],
+            'teachers' => [
+                'items' => $teacherDistribution,
+                'total_assignments' => $totalTeacherAssignments,
+            ],
+            'revenue' => [
+                'items' => $revenue,
+                'total' => round((float) $revenue->sum('value'), 2),
+                'average' => round((float) $revenue->avg('value'), 2),
+            ],
+            'revenue_forecast' => [
+                'current_month' => round($currentMonthRevenue, 2),
+                'forecast' => $forecastRevenue,
+                'previous_month' => round($previousMonthRevenue, 2),
+                'change_rate' => $forecastChange,
+                'elapsed_days' => $elapsedDays,
+                'days_in_month' => $daysInMonth,
+                'month_label' => 'Tháng '.now()->format('m/Y'),
+                'previous_month_label' => 'Tháng '.$previousMonthStart->format('m/Y'),
+            ],
+        ]);
+    }
+
+    private function growthMetric(int $current, int $previous, int $total): array
+    {
+        $growthRate = $previous > 0
+            ? round(($current - $previous) / $previous * 100, 1)
+            : ($current > 0 ? 100 : 0);
+
+        return [
+            'new' => $current,
+            'previous' => $previous,
+            'total' => $total,
+            'share' => $total > 0 ? round($current / $total * 100, 1) : 0,
+            'growth_rate' => $growthRate,
+        ];
+    }
+
     public function teacherDashboard(Request $request)
     {
         $teacher = $request->user()->teacher;
         abort_unless($teacher, 403, 'Tài khoản chưa được liên kết với hồ sơ giảng viên.');
+        $today = today();
 
         $classes = YogaClass::where('teacher_id', $teacher->id)
             ->withCount(['registrations' => function ($query) {
                 $query->where('status', RegistrationStatus::CONFIRMED->value);
             }])
-            ->latest()
+            ->orderByRaw('CASE WHEN end_date < ? THEN 2 WHEN start_date > ? THEN 1 ELSE 0 END', [$today->toDateString(), $today->toDateString()])
+            ->orderBy('start_date')
             ->get();
 
-        return view('teacher.dashboard', compact('teacher', 'classes'));
+        $stats = [
+            'total' => $classes->count(),
+            'active' => $classes->filter(fn (YogaClass $class) => $class->start_date->lte($today) && $class->end_date->gte($today))->count(),
+            'upcoming' => $classes->filter(fn (YogaClass $class) => $class->start_date->gt($today))->count(),
+            'students' => $classes->sum('registrations_count'),
+        ];
+
+        return view('teacher.dashboard', compact('teacher', 'classes', 'stats'));
     }
 
     // Registration Management
@@ -110,17 +275,18 @@ class AdminController extends Controller
             });
         }
         if ($request->filled('status')) {
-            $query->where('status', strtoupper($request->status));
+            $status = strtoupper($request->status);
+            if (in_array($status, array_column(RegistrationStatus::cases(), 'value'), true)) {
+                $query->where('status', $status);
+            }
         }
-        $registrations = $query->orderBy('created_at', 'desc')->paginate(15);
+        $registrations = $query->latest()->paginate(15)->withQueryString();
         $stats = [
             'pending' => Registration::where('status', RegistrationStatus::PENDING->value)->count(),
-            'approved' => Registration::where('status', RegistrationStatus::CONFIRMED->value)->count(),
-            'rejected' => Registration::where('status', RegistrationStatus::CANCELLED->value)->count(),
+            'confirmed' => Registration::where('status', RegistrationStatus::CONFIRMED->value)->count(),
+            'cancelled' => Registration::where('status', RegistrationStatus::CANCELLED->value)->count(),
         ];
-        $customers = Customer::all();
-        $classes = YogaClass::all();
-        return view('admin.registrations', compact('registrations', 'stats', 'customers', 'classes'));
+        return view('admin.registrations', compact('registrations', 'stats'));
     }
 
     // Admin create registration (auto-confirmed)
@@ -144,7 +310,6 @@ class AdminController extends Controller
             // Update existing customer
             $customer->update([
                 'name' => $request->name,
-                'email' => $request->email,
                 'phone' => $request->phone,
                 'birthday' => $customer->birthday, // Keep existing birthday
                 'gender' => $request->gender ?? 'female',
@@ -205,7 +370,17 @@ class AdminController extends Controller
     public function showEditRegistration($id)
     {
         $registration = Registration::with(['customer', 'class'])->findOrFail($id);
-        $classes = YogaClass::all();
+        $classes = YogaClass::with('teacher')
+            ->withCount([
+                'registrations as confirmed_registrations_count' => fn ($query) => $query
+                    ->where('status', RegistrationStatus::CONFIRMED->value),
+            ])
+            ->orderBy('name')
+            ->get()
+            ->filter(fn (YogaClass $class) => $class->id === $registration->class_id
+                || $class->quantity > $class->confirmed_registrations_count)
+            ->values();
+
         return view('admin.registration_edit', compact('registration', 'classes'));
     }
 
@@ -215,7 +390,6 @@ class AdminController extends Controller
         
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
             'phone' => 'required|string|max:20',
             'class_id' => 'required|exists:classes,id',
             'package_months' => 'required|in:1,3,6,12',
@@ -226,7 +400,6 @@ class AdminController extends Controller
         $customer = $registration->customer;
         $customer->update([
             'name' => $request->name,
-            'email' => $request->email,
             'phone' => $request->phone,
             'birthday' => $customer->birthday, // Keep existing birthday
         ]);
@@ -258,7 +431,9 @@ class AdminController extends Controller
             'note' => $request->notes,
         ]);
 
-        return redirect()->route('admin.registrations')->with('success', 'Đã cập nhật đơn đăng ký thành công! Mã đăng ký: #' . $registration->id);
+        return redirect()
+            ->route('admin.registrations.detail', $registration->id)
+            ->with('success', 'Đã cập nhật đơn đăng ký #' . $registration->id . ' thành công!');
     }
 
     public function destroyRegistration($id)
@@ -321,6 +496,7 @@ class AdminController extends Controller
     // Class Management
     public function classes(Request $request)
     {
+        $today = today();
         $query = YogaClass::with('teacher')
                           ->withCount(['registrations' => function($q) {
                               $q->where('status', RegistrationStatus::CONFIRMED->value);
@@ -337,14 +513,31 @@ class AdminController extends Controller
                   });
             });
         }
+
+        $status = strtolower((string) $request->input('status'));
+        if ($status === 'ongoing') {
+            $query->whereDate('start_date', '<=', $today)
+                ->whereDate('end_date', '>=', $today);
+        } elseif ($status === 'upcoming') {
+            $query->whereDate('start_date', '>', $today);
+        } elseif ($status === 'ended') {
+            $query->whereDate('end_date', '<', $today);
+        }
         
-        $classes = $query->orderBy('created_at', 'desc')->paginate(15);
-        return view('admin.classes', compact('classes'));
+        $classes = $query->orderBy('start_date')->paginate(12)->withQueryString();
+        $stats = [
+            'total' => YogaClass::count(),
+            'ongoing' => YogaClass::whereDate('start_date', '<=', $today)->whereDate('end_date', '>=', $today)->count(),
+            'upcoming' => YogaClass::whereDate('start_date', '>', $today)->count(),
+            'ended' => YogaClass::whereDate('end_date', '<', $today)->count(),
+        ];
+
+        return view('admin.classes', compact('classes', 'stats'));
     }
 
     public function createClass()
     {
-        $teachers = Teacher::all();
+        $teachers = Teacher::orderBy('name')->get();
         return view('admin.class_create', compact('teachers'));
     }
 
@@ -355,10 +548,10 @@ class AdminController extends Controller
             'teacher_id' => 'required|exists:teachers,id',
             'lich_hoc' => 'required|string|max:50',
             'start_time' => 'required',
-            'end_time' => 'required',
+            'end_time' => 'required|after:start_time',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:50',
             'price' => 'required|numeric|min:0',
             'location' => 'required|string|max:100',
             'description' => 'nullable|string|max:255',
@@ -452,28 +645,35 @@ class AdminController extends Controller
 
     public function editClass($id)
     {
-        $class = YogaClass::findOrFail($id);
-        $teachers = Teacher::all();
+        $class = YogaClass::withCount([
+            'registrations as confirmed_registrations_count' => fn ($query) => $query
+                ->where('status', RegistrationStatus::CONFIRMED->value),
+        ])->findOrFail($id);
+        $teachers = Teacher::orderBy('name')->get();
         return view('admin.class_edit', compact('class', 'teachers'));
     }
 
     public function updateClass(Request $request, $id)
     {
+        $class = YogaClass::findOrFail($id);
+        $confirmedCount = $class->registrations()
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->count();
+
         $request->validate([
             'name' => 'required|string|max:100',
             'teacher_id' => 'required|exists:teachers,id',
             'lich_hoc' => 'required|string|max:50',
             'start_time' => 'required',
-            'end_time' => 'required',
+            'end_time' => 'required|after:start_time',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:' . max(1, $confirmedCount) . '|max:50',
             'price' => 'required|numeric|min:0',
             'location' => 'required|string|max:100',
             'description' => 'nullable|string|max:255',
         ]);
 
-        $class = YogaClass::findOrFail($id);
         $data = $request->only([
             'name', 'teacher_id', 'lich_hoc', 'start_time', 'end_time',
             'start_date', 'end_date', 'quantity', 'price', 'location', 'description',
@@ -489,7 +689,7 @@ class AdminController extends Controller
 
         $class->update($data);
         
-        return redirect()->route('admin.classes')->with('success', 'Đã cập nhật lớp học thành công!');
+        return redirect()->route('admin.classes.detail', $class->id)->with('success', 'Đã cập nhật lớp học thành công!');
     }
 
     public function deleteClass($id)
@@ -543,7 +743,11 @@ class AdminController extends Controller
     // Customer Management
     public function customers(Request $request)
     {
-        $query = Customer::withCount('registrations');
+        $query = Customer::withCount([
+            'registrations',
+            'registrations as confirmed_registrations_count' => fn ($registrationQuery) => $registrationQuery
+                ->where('status', RegistrationStatus::CONFIRMED->value),
+        ]);
         
         if ($request->filled('search')) {
             $search = $request->search;
@@ -554,10 +758,23 @@ class AdminController extends Controller
                   ->orWhere('address', 'like', "%{$search}%");
             });
         }
+
+        $status = strtolower((string) $request->input('status'));
+        if ($status === 'registered') {
+            $query->has('registrations');
+        } elseif ($status === 'unregistered') {
+            $query->doesntHave('registrations');
+        }
         
-        $customers = $query->orderBy('created_at', 'desc')->paginate(15);
+        $customers = $query->latest()->paginate(15)->withQueryString();
+        $stats = [
+            'total' => Customer::count(),
+            'registered' => Customer::has('registrations')->count(),
+            'unregistered' => Customer::doesntHave('registrations')->count(),
+            'new_this_month' => Customer::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count(),
+        ];
         
-        return view('admin.customers', compact('customers'));
+        return view('admin.customers', compact('customers', 'stats'));
     }
 
     public function createCustomer()
@@ -571,13 +788,13 @@ class AdminController extends Controller
             'name' => 'required|string|max:100',
             'phone' => 'required|string|max:20|unique:customers,phone',
             'email' => 'required|email|max:100|unique:customers,email',
-            'birthday' => 'nullable|date',
-            'gender' => 'nullable|string|max:10',
+            'birthday' => 'nullable|date|before_or_equal:today',
+            'gender' => 'nullable|in:male,female',
             'address' => 'nullable|string|max:255',
             'note' => 'nullable|string|max:255',
         ]);
 
-        Customer::create($request->all());
+        Customer::create($request->only(['name', 'phone', 'email', 'birthday', 'gender', 'address', 'note']));
         
         return redirect()->route('admin.customers')->with('success', 'Đã tạo học viên thành công!');
     }
@@ -604,17 +821,16 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:100',
             'phone' => 'required|string|max:20|unique:customers,phone,' . $id,
-            'email' => 'required|email|max:100|unique:customers,email,' . $id,
-            'birthday' => 'nullable|date',
-            'gender' => 'nullable|string|max:10',
+            'birthday' => 'nullable|date|before_or_equal:today',
+            'gender' => 'nullable|in:male,female',
             'address' => 'nullable|string|max:255',
             'note' => 'nullable|string|max:255',
         ]);
 
         $customer = Customer::findOrFail($id);
-        $customer->update($request->all());
+        $customer->update($request->only(['name', 'phone', 'birthday', 'gender', 'address', 'note']));
         
-        return redirect()->route('admin.customers')->with('success', 'Đã cập nhật học viên thành công!');
+        return redirect()->route('admin.customers.detail', $customer->id)->with('success', 'Đã cập nhật học viên thành công!');
     }
 
     public function deleteCustomer($id)
@@ -636,7 +852,10 @@ class AdminController extends Controller
     // Teacher Management
     public function teachers(Request $request)
     {
-        $query = Teacher::withCount('classes');
+        $query = Teacher::with('user')->withCount([
+            'classes',
+            'classes as active_classes_count' => fn ($classQuery) => $classQuery->whereDate('end_date', '>=', today()),
+        ]);
         
         if ($request->filled('search')) {
             $search = $request->search;
@@ -648,9 +867,22 @@ class AdminController extends Controller
                   ->orWhere('exp_year', 'like', "%{$search}%");
             });
         }
+
+        $status = strtolower((string) $request->input('status'));
+        if ($status === 'assigned') {
+            $query->has('classes');
+        } elseif ($status === 'unassigned') {
+            $query->doesntHave('classes');
+        }
         
-        $teachers = $query->orderBy('created_at', 'desc')->paginate(15);
-        return view('admin.teachers', compact('teachers'));
+        $teachers = $query->latest()->paginate(12)->withQueryString();
+        $stats = [
+            'total' => Teacher::count(),
+            'assigned' => Teacher::has('classes')->count(),
+            'unassigned' => Teacher::doesntHave('classes')->count(),
+            'new_this_month' => Teacher::whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count(),
+        ];
+        return view('admin.teachers', compact('teachers', 'stats'));
     }
 
     public function createTeacher()
@@ -664,14 +896,14 @@ class AdminController extends Controller
             'name' => 'required|string|max:100',
             'phone' => 'required|string|max:20|unique:teachers,phone',
             'email' => 'required|email|max:100|unique:teachers,email',
-            'birthday' => 'required|date',
-            'exp_year' => 'required|integer|min:0',
+            'birthday' => 'required|date|before_or_equal:today',
+            'exp_year' => 'required|integer|min:0|max:60',
             'description' => 'required|string|max:255',
             'avatar' => 'nullable|string|max:255',
             'account_password' => 'nullable|string|min:6|confirmed',
         ]);
 
-        $teacherData = $request->all();
+        $teacherData = $request->only(['name', 'phone', 'email', 'birthday', 'exp_year', 'description', 'avatar']);
         $teacherData['avatar'] = $request->avatar ?? 'default-avatar.jpg'; // Giá trị mặc định
         
         $teacher = Teacher::create($teacherData);
@@ -682,15 +914,17 @@ class AdminController extends Controller
 
     public function teacherDetail($id)
     {
-        $teacher = Teacher::findOrFail($id);
-        $classes = YogaClass::where('teacher_id', $id)->orderBy('created_at', 'desc')->get();
+        $teacher = Teacher::with('user')->findOrFail($id);
+        $classes = YogaClass::withCount([
+            'registrations as confirmed_registrations_count' => fn ($query) => $query->where('status', RegistrationStatus::CONFIRMED->value),
+        ])->where('teacher_id', $id)->orderByDesc('start_date')->get();
         
         return view('admin.teacher_detail', compact('teacher', 'classes'));
     }
 
     public function editTeacher($id)
     {
-        $teacher = Teacher::findOrFail($id);
+        $teacher = Teacher::with('user')->withCount('classes')->findOrFail($id);
         return view('admin.teacher_edit', compact('teacher'));
     }
 
@@ -699,19 +933,18 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:100',
             'phone' => 'required|string|max:20|unique:teachers,phone,' . $id,
-            'email' => 'required|email|max:100|unique:teachers,email,' . $id,
-            'birthday' => 'required|date',
-            'exp_year' => 'required|integer|min:0',
+            'birthday' => 'required|date|before_or_equal:today',
+            'exp_year' => 'required|integer|min:0|max:60',
             'description' => 'required|string|max:255',
             'avatar' => 'nullable|string|max:255',
             'account_password' => 'nullable|string|min:6|confirmed',
         ]);
 
         $teacher = Teacher::findOrFail($id);
-        $teacher->update($request->all());
+        $teacher->update($request->only(['name', 'phone', 'birthday', 'exp_year', 'description', 'avatar']));
         $this->syncTeacherAccount($teacher, $request->input('account_password'));
         
-        return redirect()->route('admin.teachers')->with('success', 'Đã cập nhật giảng viên thành công!');
+        return redirect()->route('admin.teachers.detail', $teacher->id)->with('success', 'Đã cập nhật giảng viên thành công!');
     }
 
     private function syncTeacherAccount(Teacher $teacher, ?string $password = null): void

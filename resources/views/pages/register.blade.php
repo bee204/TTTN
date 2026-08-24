@@ -1,210 +1,187 @@
 @extends('layouts.app')
 
-@section('title', 'Đăng ký lớp học - Yoga/Gym Center')
+@section('title', 'Đăng ký lớp Yoga - VITA Yoga Center')
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/class-register.css') }}">
+@endpush
 
 @section('content')
-<h1 class="page-title">📝 Đăng ký lớp học</h1>
-<div class="form-container">
-    <div class="card">
-        <h2 style="text-align: center; color: #667eea; margin-bottom: 30px;">Thông tin đăng ký</h2>
-        <form id="registerForm" method="POST" action="{{ route('register.submit') }}" autocomplete="off">
-            @csrf
-            <div class="form-group">
-                <label for="fullname">👤 Họ và tên *</label>
-                <input type="text" id="fullname" name="name" required placeholder="Nhập họ và tên đầy đủ" value="{{ old('name', $user->name) }}">
+@php
+    $currentClassId = (string) old('class_id', $selectedClassId ?? '');
+    $currentPackage = (string) old('package_months', '1');
+@endphp
+
+<div class="class-register-page">
+    <nav class="register-breadcrumb" aria-label="Điều hướng">
+        <a href="{{ route('classes') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách lớp Yoga</a>
+        <span aria-hidden="true">/</span>
+        <span>Đăng ký lớp học</span>
+    </nav>
+
+    <section class="register-heading">
+        <div>
+            <span class="register-eyebrow"><i class="fa-solid fa-leaf" aria-hidden="true"></i> Bắt đầu hành trình cùng VITA</span>
+            <h1>Hoàn tất đăng ký<br><span>lớp Yoga của bạn.</span></h1>
+        </div>
+        <p>Chọn lớp và gói học phù hợp. Trung tâm sẽ kiểm tra thông tin và xác nhận đơn đăng ký sau khi bạn gửi.</p>
+    </section>
+
+    @if($errors->any())
+        <div class="register-alert register-alert--error" role="alert">
+            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+            <div>
+                <strong>Vui lòng kiểm tra lại thông tin</strong>
+                <ul>
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
-            <div class="form-group">
-                <label for="email">📧 Email *</label>
-                <input type="email" id="email" name="email" required value="{{ $user->email }}" disabled>
-                <small style="display: block; margin-top: 5px; color: #6c757d;">Email lấy từ tài khoản và không thể thay đổi.</small>
-            </div>
-            <div class="form-group">
-                <label for="phone">📱 Số điện thoại *</label>
-                <input type="tel" id="phone" name="phone" required placeholder="0909123456" value="{{ old('phone', $user->customer?->phone) }}">
-            </div>
-            <div class="form-group">
-                <label for="className">🏃‍♀️ Chọn lớp học *</label>
-            <select id="className" name="class_id" required>
-                <option value="">-- Chọn lớp học --</option>
-                @foreach($classes as $class)
-                    @if(!$class->is_full)
-                        <option value="{{ $class->id }}" data-price="{{ $class->price }}" 
-                                {{ isset($selectedClassId) && $selectedClassId == $class->id ? 'selected' : '' }}>
-                            {{ $class->name }}
-                        </option>
-                    @endif
-                @endforeach
-            </select>
-            </div>
-            
-            <!-- Package Selection -->
-            <div class="form-group" id="packageGroup" style="display: none;">
-                <label for="package">📦 Chọn gói học *</label>
-                <select id="package" name="package_months" required>
-                    <option value="">-- Chọn gói học --</option>
-                    <option value="1">1 tháng (0% giảm giá)</option>
-                    <option value="3">3 tháng (5% giảm giá)</option>
-                    <option value="6">6 tháng (10% giảm giá)</option>
-                    <option value="12">12 tháng (15% giảm giá)</option>
-                </select>
-            </div>
-            
-            <!-- Price Display -->
-            <div class="form-group" id="priceDisplay" style="display: none;">
-                <div class="price-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span>💰 Giá gốc:</span>
-                        <span id="originalPrice">0₫</span>
+        </div>
+    @endif
+
+    <form id="registerForm" class="register-layout" method="POST" action="{{ route('register.submit') }}" autocomplete="on">
+        @csrf
+
+        <div class="register-form-card">
+            <section class="register-form-section">
+                <div class="register-section-heading">
+                    <span>01</span>
+                    <div><small>Lớp học</small><h2>Chọn lớp Yoga</h2></div>
+                </div>
+
+                <div class="register-field">
+                    <label for="className">Lớp bạn muốn tham gia <em>*</em></label>
+                    <div class="register-control register-control--select">
+                        <i class="fa-solid fa-spa" aria-hidden="true"></i>
+                        <select id="className" name="class_id" required>
+                            <option value="">Chọn một lớp Yoga</option>
+                            @foreach($classes as $class)
+                                @if(!$class->is_full && $class->start_date->isFuture())
+                                    <option
+                                        value="{{ $class->id }}"
+                                        data-price="{{ $class->price }}"
+                                        data-teacher="{{ $class->teacher?->name ?? 'Đang cập nhật' }}"
+                                        data-schedule="{{ $class->lich_hoc }}"
+                                        data-time="{{ $class->start_time->format('H:i') }} – {{ $class->end_time->format('H:i') }}"
+                                        data-location="{{ $class->location }}"
+                                        data-dates="{{ $class->start_date->format('d/m/Y') }} – {{ $class->end_date->format('d/m/Y') }}"
+                                        data-slots="{{ $class->available_slots }}"
+                                        @selected($currentClassId === (string) $class->id)
+                                    >{{ $class->name }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                        <i class="fa-solid fa-chevron-down register-select-arrow" aria-hidden="true"></i>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span>🎯 Giảm giá:</span>
-                        <span id="discountAmount" style="color: #28a745;">0₫</span>
+                    <small>Chỉ hiển thị các lớp còn chỗ và chưa bắt đầu.</small>
+                </div>
+            </section>
+
+            <section class="register-form-section">
+                <div class="register-section-heading">
+                    <span>02</span>
+                    <div><small>Gói học</small><h2>Chọn thời hạn phù hợp</h2></div>
+                </div>
+
+                <div class="package-options" role="radiogroup" aria-label="Thời hạn gói học">
+                    @foreach([
+                        1 => ['1 tháng', 'Không giảm'],
+                        3 => ['3 tháng', 'Giảm 5%'],
+                        6 => ['6 tháng', 'Giảm 10%'],
+                        12 => ['12 tháng', 'Giảm 15%'],
+                    ] as $months => [$label, $discountLabel])
+                        <label class="package-option">
+                            <input type="radio" name="package_months" value="{{ $months }}" @checked($currentPackage === (string) $months) required>
+                            <span><strong>{{ $label }}</strong><small>{{ $discountLabel }}</small></span>
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        </label>
+                    @endforeach
+                </div>
+            </section>
+
+            <section class="register-form-section">
+                <div class="register-section-heading">
+                    <span>03</span>
+                    <div><small>Học viên</small><h2>Thông tin liên hệ</h2></div>
+                </div>
+
+                <div class="register-field-grid">
+                    <div class="register-field">
+                        <label for="fullname">Họ và tên <em>*</em></label>
+                        <div class="register-control">
+                            <i class="fa-regular fa-user" aria-hidden="true"></i>
+                            <input type="text" id="fullname" name="name" required maxlength="255" autocomplete="name" placeholder="Họ và tên của bạn" value="{{ old('name', $user->name) }}">
+                        </div>
+                        @error('name')<small class="register-field-error">{{ $message }}</small>@enderror
                     </div>
-                    <hr style="margin: 10px 0;">
-                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; color: #667eea;">
-                        <span>💳 Tổng thanh toán:</span>
-                        <span id="finalPrice">0₫</span>
+
+                    <div class="register-field">
+                        <label for="phone">Số điện thoại <em>*</em></label>
+                        <div class="register-control">
+                            <i class="fa-solid fa-phone" aria-hidden="true"></i>
+                            <input type="tel" id="phone" name="phone" required maxlength="20" autocomplete="tel" inputmode="tel" placeholder="Ví dụ: 0909 123 456" value="{{ old('phone', $user->customer?->phone) }}">
+                        </div>
+                        @error('phone')<small class="register-field-error">{{ $message }}</small>@enderror
                     </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="experience">🎯 Kinh nghiệm</label>
-                <select id="experience" name="experience">
-                    <option value="beginner">🌱 Người mới bắt đầu</option>
-                    <option value="intermediate">🌿 Trung bình</option>
-                    <option value="advanced">🌳 Nâng cao</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="notes">📝 Ghi chú</label>
-                <textarea id="notes" name="notes" rows="3" placeholder="Yêu cầu đặc biệt hoặc thông tin bổ sung..."></textarea>
-            </div>
-            <div class="checkbox-group">
-                <input type="checkbox" id="terms" name="terms" required>
-                <label for="terms">Tôi đồng ý với <a href="#" style="color: #667eea;">điều khoản sử dụng</a> và <a href="#" style="color: #667eea;">chính sách bảo mật</a> *</label>
-            </div>
-            <div class="checkbox-group">
-                <input type="checkbox" id="newsletter" name="newsletter">
-                <label for="newsletter">Nhận thông báo về các lớp học mới và ưu đãi</label>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full">🎯 Đăng ký ngay</button>
-        </form>
-        <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
-            <!-- Đã có tài khoản? Đăng nhập ngay (Admin) removed for user registration form -->
+
+                <div class="register-field">
+                    <label for="email">Email tài khoản</label>
+                    <div class="register-control register-control--locked">
+                        <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                        <input type="email" id="email" value="{{ $user->email }}" disabled>
+                        <span><i class="fa-solid fa-lock" aria-hidden="true"></i> Cố định</span>
+                    </div>
+                    <small>Email dùng để đăng nhập nên không thể thay đổi tại đây.</small>
+                </div>
+
+                <div class="register-field">
+                    <label for="notes">Ghi chú cho trung tâm</label>
+                    <textarea id="notes" name="notes" rows="4" maxlength="1000" placeholder="Tình trạng sức khỏe hoặc điều bạn muốn giáo viên lưu ý...">{{ old('notes') }}</textarea>
+                </div>
+            </section>
+
+            <label class="register-consent">
+                <input type="checkbox" id="terms" name="terms" value="1" required @checked(old('terms'))>
+                <span><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+                <p>Tôi xác nhận thông tin trên là chính xác và đồng ý để VITA liên hệ xác nhận đăng ký. <em>*</em></p>
+            </label>
+
+            <button type="submit" class="register-submit" id="registerSubmit">
+                Gửi đăng ký <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+            <p class="register-submit-note"><i class="fa-solid fa-shield-heart" aria-hidden="true"></i> Bạn chưa cần thanh toán ở bước này.</p>
         </div>
-    </div>
+
+        <aside class="register-summary" aria-live="polite">
+            <div class="register-summary__top">
+                <span class="register-summary__eyebrow">Tóm tắt đăng ký</span>
+                <span class="register-summary__icon"><i class="fa-solid fa-spa" aria-hidden="true"></i></span>
+                <h2 id="summaryClassName">Chưa chọn lớp</h2>
+                <p id="summaryTeacher">Chọn một lớp Yoga để xem thông tin.</p>
+            </div>
+
+            <div class="register-summary__facts" id="summaryFacts" hidden>
+                <div><i class="fa-regular fa-calendar" aria-hidden="true"></i><span><small>Lịch học</small><strong id="summarySchedule">—</strong></span></div>
+                <div><i class="fa-regular fa-clock" aria-hidden="true"></i><span><small>Khung giờ</small><strong id="summaryTime">—</strong></span></div>
+                <div><i class="fa-solid fa-location-dot" aria-hidden="true"></i><span><small>Địa điểm</small><strong id="summaryLocation">—</strong></span></div>
+                <div><i class="fa-regular fa-calendar-check" aria-hidden="true"></i><span><small>Khóa học</small><strong id="summaryDates">—</strong></span></div>
+            </div>
+
+            <div class="register-summary__pricing">
+                <div><span>Học phí gốc</span><strong id="originalPrice">—</strong></div>
+                <div><span>Ưu đãi gói học</span><strong id="discountAmount">—</strong></div>
+                <div class="register-summary__total"><span>Tổng dự kiến</span><strong id="finalPrice">—</strong></div>
+            </div>
+
+            <p class="register-summary__status" id="summaryStatus"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Vui lòng chọn lớp học.</p>
+        </aside>
+    </form>
 </div>
 @endsection
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const classNameSelect = document.getElementById('className');
-    const packageGroup = document.getElementById('packageGroup');
-    const packageSelect = document.getElementById('package');
-    const priceDisplay = document.getElementById('priceDisplay');
-    const originalPriceSpan = document.getElementById('originalPrice');
-    const discountAmountSpan = document.getElementById('discountAmount');
-    const finalPriceSpan = document.getElementById('finalPrice');
-
-    // Discount rates for each package
-    const discountRates = {
-        1: 0,    // 1 month: 0% discount
-        3: 5,    // 3 months: 5% discount
-        6: 10,   // 6 months: 10% discount
-        12: 15   // 12 months: 15% discount
-    };
-
-    function calculatePrice() {
-        const selectedOption = classNameSelect.options[classNameSelect.selectedIndex];
-        const packageMonths = parseInt(packageSelect.value);
-        
-        if (!selectedOption.value || !packageMonths) {
-            priceDisplay.style.display = 'none';
-            return;
-        }
-
-        const monthlyPrice = parseFloat(selectedOption.dataset.price);
-        const totalMonths = packageMonths;
-        const totalPrice = monthlyPrice * totalMonths; // Tổng giá cho tất cả tháng
-        const discountRate = discountRates[packageMonths] || 0;
-        const discountAmount = (totalPrice * discountRate) / 100;
-        const finalPrice = totalPrice - discountAmount;
-
-        // Update display
-        originalPriceSpan.textContent = formatPrice(totalPrice);
-        discountAmountSpan.textContent = formatPrice(discountAmount);
-        finalPriceSpan.textContent = formatPrice(finalPrice);
-        
-        priceDisplay.style.display = 'block';
-    }
-
-    function formatPrice(price) {
-        return new Intl.NumberFormat('vi-VN').format(Math.round(price)) + '₫';
-    }
-
-    // Show package selection when class is selected
-    classNameSelect.addEventListener('change', function() {
-        if (this.value) {
-            packageGroup.style.display = 'block';
-            packageSelect.required = true;
-        } else {
-            packageGroup.style.display = 'none';
-            priceDisplay.style.display = 'none';
-            packageSelect.required = false;
-            packageSelect.value = '';
-        }
-        calculatePrice();
-    });
-
-    // Calculate price when package changes
-    packageSelect.addEventListener('change', calculatePrice);
-
-    // Hiển thị thông báo nếu có lớp học được chọn sẵn
-    @if(isset($selectedClassId) && $selectedClassId)
-        const selectedClass = document.querySelector('#className option[value="{{ $selectedClassId }}"]');
-        if (selectedClass) {
-            // Hiển thị thông báo nhỏ
-            const alert = document.createElement('div');
-            alert.className = 'alert alert-info';
-            alert.style.cssText = 'background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; padding: 10px; border-radius: 8px; margin-bottom: 15px;';
-            alert.innerHTML = '✅ Đã chọn lớp học: <strong>' + selectedClass.textContent + '</strong>';
-            
-            const form = document.getElementById('registerForm');
-            form.insertBefore(alert, form.firstChild);
-            
-            // Show package selection and calculate price
-            packageGroup.style.display = 'block';
-            packageSelect.required = true;
-            calculatePrice();
-            
-            // Tự động focus vào trường tên
-            document.getElementById('fullname').focus();
-        }
-    @endif
-});
-</script>
+<script src="{{ asset('js/register.js') }}"></script>
 @endpush
-
-@if(session('success'))
-    <div class="alert alert-success" style="margin-top: 20px;">
-        ✅ {{ session('success') }}
-    </div>
-@endif
-
-@if(session('error'))
-    <div class="alert alert-error" style="margin-top: 20px;">
-        ❌ {{ session('error') }}
-    </div>
-@endif
-
-@if($errors->any())
-    <div class="alert alert-error" style="margin-top: 20px;">
-        ❌ Vui lòng kiểm tra lại thông tin:
-        <ul style="margin: 10px 0 0 20px;">
-            @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif

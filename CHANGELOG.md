@@ -1,6 +1,6 @@
-# Changelog - Yoga/Gym Center Management System
+# Changelog - VITA Yoga Center Management System
 
-All notable changes to the Yoga/Gym Center Management System will be documented in this file.
+All notable changes to the VITA Yoga Center Management System will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🎉 Major Release - Complete System Implementation
 
-This version marks the completion of the entire yoga/gym management system with all core functionality working properly.
+This version marks the completion of the Yoga management system with all core functionality working properly.
 
 ### ✅ Added
 - **Complete Admin Teacher Detail View**: Created comprehensive `admin/teacher_detail.blade.php` with statistics, class information, and responsive design

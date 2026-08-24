@@ -8,6 +8,11 @@ use App\Models\Registration;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
+/**
+ * API-only controller; giao diện demo hiện dùng WebController::submitClassReview().
+ * Các mutation ở đây chưa có ownership/policy đầy đủ, vì vậy không dùng cho UI/client
+ * mới trước khi harden. Xem docs/LEGACY_UNUSED.md.
+ */
 class ClassReviewController extends Controller
 {
     public function index(Request $request)
