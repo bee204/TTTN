@@ -65,9 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('attendance', AttendanceController::class)->only(['index', 'store', 'update']);
     });
 
-    // CN02 API vẫn tồn tại nhưng giao diện Blade hiện không gọi các endpoint này.
-    // Luồng review của demo dùng registered.class.review trong routes/web.php.
-    // Không dùng API này cho client mới trước khi bổ sung ownership/policy; xem docs/LEGACY_UNUSED.md.
+    // CN02 review endpoints enforce customer ownership and attendance eligibility.
     Route::get('/class-reviews/ranking', [ClassReviewController::class, 'ranking']);
     Route::apiResource('class-reviews', ClassReviewController::class)->only(['index', 'store', 'update', 'destroy']);
 

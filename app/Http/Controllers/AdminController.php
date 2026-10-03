@@ -643,6 +643,16 @@ class AdminController extends Controller
         return view('admin.class_reviews', compact('class', 'reviews'));
     }
 
+    public function deleteClassReview($classId, $reviewId)
+    {
+        $class = YogaClass::findOrFail($classId);
+        $review = ClassReview::where('class_id', $class->id)->findOrFail($reviewId);
+        $review->delete();
+
+        return redirect()->route('admin.classes.reviews', $class->id)
+            ->with('success', 'Đã xóa đánh giá lớp học.');
+    }
+
     public function editClass($id)
     {
         $class = YogaClass::withCount([

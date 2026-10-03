@@ -41,8 +41,9 @@ Các method cũ `contact`, `authors`, `team`, `members`, `loginSubmit`, `adminDa
 
 - `/api/class-reviews*` tồn tại và yêu cầu Sanctum nhưng không được Blade/JavaScript của demo gọi.
 - Luồng web hiện hành dùng `WebController::submitClassReview()` và ràng buộc review với `customer_id` của tài khoản đăng nhập.
-- API chưa kiểm tra ownership đầy đủ: client có thể truyền `customer_id`, còn update/delete dùng model binding mà chưa có policy.
-- Không dùng API này cho mobile app hoặc client mới trước khi bổ sung policy/authorization.
+- API mutation chỉ cho tài khoản customer thao tác review của chính mình; `customer_id` được lấy từ tài khoản Sanctum, không lấy từ request.
+- Tạo mới yêu cầu registration `CONFIRMED`, có attendance `PRESENT`/`LATE`, và nằm trong 30 ngày sau khi lớp kết thúc. Review chỉ sửa được trong 7 ngày từ lúc tạo; xóa chỉ dành cho admin.
+- API vẫn là luồng riêng với UI Blade; nếu kết nối client mới, giữ đồng bộ các điều kiện này và giới hạn quyền đọc phù hợp với yêu cầu riêng tư.
 
 ### Attendance summary API
 

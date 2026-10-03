@@ -171,10 +171,23 @@ class WebController extends Controller
             ->where('status', RegistrationStatus::CONFIRMED->value)
             ->firstOrFail();
         $class = YogaClass::with('teacher')->findOrFail($id);
+        $hasEligibleAttendance = $registration->attendances()
+            ->whereIn('status', ['PRESENT', 'LATE'])
+            ->exists();
         $review = ClassReview::where('customer_id', Auth::user()->customer_id)
             ->where('class_id', $id)
             ->first();
-        return view('pages.registered_class_detail', compact('class', 'review'));
+        $submissionDeadline = $class->end_date->copy()->addDays(30)->endOfDay();
+        $canSubmitReview = $hasEligibleAttendance && now()->lte($submissionDeadline);
+        $canEditReview = $review
+            && $hasEligibleAttendance
+            && now()->lte($review->created_at->copy()->addDays(7));
+        $canDeleteReview = $review
+            && now()->lte($review->created_at->copy()->addDays(7));
+
+        return view('pages.registered_class_detail', compact(
+            'class', 'review', 'hasEligibleAttendance', 'submissionDeadline', 'canSubmitReview', 'canEditReview', 'canDeleteReview'
+        ));
     }
 
     public function submitClassReview(Request $request, $id)
@@ -185,15 +198,20 @@ class WebController extends Controller
             'comment' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        Registration::where('customer_id', Auth::user()->customer_id)
+        $registration = Registration::with('class')
+            ->where('customer_id', Auth::user()->customer_id)
             ->where('class_id', $id)
             ->where('status', RegistrationStatus::CONFIRMED->value)
             ->firstOrFail();
 
-        if (ClassReview::where('customer_id', Auth::user()->customer_id)
-            ->where('class_id', $id)
-            ->exists()) {
-            return back()->with('error', 'Bạn đã đánh giá lớp học này và không thể đánh giá lại.');
+        if (!$registration->attendances()->whereIn('status', ['PRESENT', 'LATE'])->exists()) {
+            return back()->with('error', 'Bạn cần điểm danh có mặt hoặc đi muộn ít nhất một buổi trước khi đánh giá.');
+        }
+        if (now()->gt($registration->class->end_date->copy()->addDays(30)->endOfDay())) {
+            return back()->with('error', 'Đã hết thời hạn gửi đánh giá cho lớp học này.');
+        }
+        if (ClassReview::where('customer_id', Auth::user()->customer_id)->where('class_id', $id)->exists()) {
+            return back()->with('error', 'Bạn đã có đánh giá cho lớp này. Hãy dùng chức năng sửa đánh giá.');
         }
 
         ClassReview::create([
@@ -204,6 +222,56 @@ class WebController extends Controller
 
         return back()->with('success', 'Đánh giá lớp học đã được lưu.');
     }
+
+    public function updateClassReview(Request $request, $id)
+    {
+        abort_unless(Auth::check() && Auth::user()->customer_id, 403);
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'between:1,5'],
+            'comment' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $registration = Registration::where('customer_id', Auth::user()->customer_id)
+            ->where('class_id', $id)
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->firstOrFail();
+        if (!$registration->attendances()->whereIn('status', ['PRESENT', 'LATE'])->exists()) {
+            return back()->with('error', 'Bạn cần điểm danh có mặt hoặc đi muộn ít nhất một buổi trước khi sửa đánh giá.');
+        }
+
+        $review = ClassReview::where('customer_id', Auth::user()->customer_id)
+            ->where('class_id', $id)
+            ->firstOrFail();
+        if (now()->gt($review->created_at->copy()->addDays(7))) {
+            return back()->with('error', 'Đã hết thời hạn 7 ngày để sửa đánh giá.');
+        }
+
+        $review->update($data);
+
+        return back()->with('success', 'Đánh giá lớp học đã được cập nhật.');
+    }
+
+    public function deleteClassReview(Request $request, $id)
+    {
+        abort_unless(Auth::check() && Auth::user()->customer_id, 403);
+
+        Registration::where('customer_id', Auth::user()->customer_id)
+            ->where('class_id', $id)
+            ->where('status', RegistrationStatus::CONFIRMED->value)
+            ->firstOrFail();
+
+        $review = ClassReview::where('customer_id', Auth::user()->customer_id)
+            ->where('class_id', $id)
+            ->firstOrFail();
+        if (now()->gt($review->created_at->copy()->addDays(7))) {
+            return back()->with('error', 'Đã hết thời hạn 7 ngày để xóa đánh giá.');
+        }
+
+        $review->delete();
+
+        return back()->with('success', 'Đánh giá lớp học đã được xóa.');
+    }
+
     public function contactSend(Request $request)
     {
         $request->validate([

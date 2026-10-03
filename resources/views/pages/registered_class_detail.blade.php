@@ -16,32 +16,58 @@
             </div>
         </div>
     </div>
-    @if($review)
+    @if($review && !$canEditReview)
         <div class="review-form review-readonly" style="margin-top: 30px;">
             <h3>⭐ Đánh giá của bạn</h3>
             <div class="selected-stars" aria-label="{{ $review->rating }} trên 5 sao">
                 {{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}
             </div>
             <p>{{ $review->comment ?: 'Không có nhận xét.' }}</p>
-            <small>Bạn đã gửi đánh giá cho lớp học này.</small>
+            <small>{{ $hasEligibleAttendance ? 'Bạn chỉ có thể sửa trong 7 ngày kể từ khi gửi đánh giá.' : 'Bạn cần điểm danh có mặt hoặc đi muộn ít nhất một buổi để sửa đánh giá.' }}</small>
+            @if($canDeleteReview)
+                <form method="POST" action="{{ route('registered.class.review.destroy', $class->id) }}" onsubmit="return confirm('Bạn có chắc muốn xóa đánh giá này?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">Xóa đánh giá</button>
+                </form>
+            @endif
         </div>
-    @else
+    @elseif($canSubmitReview || $canEditReview)
     <div class="review-form" style="margin-top: 30px;">
-        <h3>⭐ Đánh giá lớp học</h3>
-        <form method="POST" action="{{ route('registered.class.review', $class->id) }}">
+        <h3>⭐ {{ $review ? 'Sửa đánh giá' : 'Đánh giá lớp học' }}</h3>
+        <form method="POST" action="{{ $review ? route('registered.class.review.update', $class->id) : route('registered.class.review', $class->id) }}">
             @csrf
+            @if($review) @method('PUT') @endif
             <fieldset class="star-rating">
                 <legend>Chọn mức đánh giá</legend>
                 @for($rating = 5; $rating >= 1; $rating--)
-                    <input type="radio" id="rating-{{ $rating }}" name="rating" value="{{ $rating }}" {{ optional($review)->rating === $rating ? 'checked' : '' }} required>
+                    <input type="radio" id="rating-{{ $rating }}" name="rating" value="{{ $rating }}" {{ (int) old('rating', $review?->rating) === $rating ? 'checked' : '' }} required>
                     <label for="rating-{{ $rating }}" title="{{ $rating }} sao">★</label>
                 @endfor
             </fieldset>
             <label for="comment">Nhận xét của bạn</label>
-            <textarea id="comment" name="comment" rows="4" maxlength="2000">{{ old('comment', optional($review)->comment) }}</textarea>
+            <textarea id="comment" name="comment" rows="4" maxlength="2000">{{ old('comment', $review?->comment) }}</textarea>
             <button type="submit" class="btn btn-primary">{{ $review ? 'Cập nhật đánh giá' : 'Gửi đánh giá' }}</button>
         </form>
+        <small>{{ $review ? 'Bạn có thể sửa đánh giá trong 7 ngày kể từ ngày gửi.' : 'Bạn có thể gửi đánh giá đến hết ngày '.$submissionDeadline->format('d/m/Y').'.' }}</small>
+        @if($review && $canDeleteReview)
+            <form method="POST" action="{{ route('registered.class.review.destroy', $class->id) }}" onsubmit="return confirm('Bạn có chắc muốn xóa đánh giá này?')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger">Xóa đánh giá</button>
+            </form>
+        @endif
     </div>
+    @elseif(!$hasEligibleAttendance)
+        <div class="review-form review-readonly" style="margin-top: 30px;">
+            <h3>⭐ Đánh giá lớp học</h3>
+            <p>Bạn cần điểm danh có mặt hoặc đi muộn ít nhất một buổi trước khi đánh giá.</p>
+        </div>
+    @else
+        <div class="review-form review-readonly" style="margin-top: 30px;">
+            <h3>⭐ Đánh giá lớp học</h3>
+            <p>Đã hết thời hạn gửi đánh giá cho lớp học này.</p>
+        </div>
     @endif
 </div>
 @endsection

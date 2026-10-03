@@ -35,6 +35,8 @@ Route::get('/registered-classes', [WebController::class, 'registeredClasses'])->
 Route::post('/registered-classes/{id}/cancel', [WebController::class, 'cancelRegistration'])->middleware('auth')->name('registered.class.cancel');
 Route::get('/registered-classes/{id}', [WebController::class, 'registeredClassDetail'])->middleware('auth')->name('registered.class.detail');
 Route::post('/registered-classes/{id}/review', [WebController::class, 'submitClassReview'])->middleware('auth')->name('registered.class.review');
+Route::put('/registered-classes/{id}/review', [WebController::class, 'updateClassReview'])->middleware('auth')->name('registered.class.review.update');
+Route::delete('/registered-classes/{id}/review', [WebController::class, 'deleteClassReview'])->middleware('auth')->name('registered.class.review.destroy');
 
 Route::prefix('teacher')->name('teacher.')->middleware(['auth', 'role:teacher'])->group(function () {
     Route::get('/', [AdminController::class, 'teacherDashboard'])->name('dashboard');
@@ -80,6 +82,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/classes/{id}/attendance', [AdminController::class, 'attendancePage'])->name('classes.attendance');
         Route::post('/registrations/{id}/attendance', [AdminController::class, 'storeAttendance'])->name('registrations.attendance.store');
         Route::get('/classes/{id}/reviews', [AdminController::class, 'reviewsPage'])->name('classes.reviews');
+        Route::delete('/classes/{classId}/reviews/{reviewId}', [AdminController::class, 'deleteClassReview'])->name('classes.reviews.destroy');
         Route::get('/classes/{id}/edit', [AdminController::class, 'editClass'])->name('classes.edit');
         Route::put('/classes/{id}', [AdminController::class, 'updateClass'])->name('classes.update');
         Route::delete('/classes/{id}', [AdminController::class, 'deleteClass'])->name('classes.delete');
