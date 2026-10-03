@@ -145,7 +145,9 @@ class CN01Cn02Test extends TestCase
 
         $this->actingAs($admin)->get(route('admin.classes.reviews', $class->id))
             ->assertOk()
-            ->assertSee('Xóa đánh giá');
+            ->assertSee('Xóa đánh giá')
+            ->assertSee('data-confirm-title="Xác nhận xóa đánh giá"', false)
+            ->assertDontSee('onsubmit="return confirm(', false);
 
         $this->actingAs($teacherUser)->delete(route('admin.classes.reviews.destroy', [$class->id, $review->id]))
             ->assertForbidden();

@@ -20,7 +20,7 @@
         <div class="stars">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</div>
         <p>{{ $review->comment ?: 'Không có nhận xét.' }}</p>
         @if(Auth::user()->role === 'admin')
-            <form method="POST" action="{{ route('admin.classes.reviews.destroy', [$class->id, $review->id]) }}" onsubmit="return confirm('Bạn có chắc muốn xóa đánh giá này?')">
+            <form method="POST" action="{{ route('admin.classes.reviews.destroy', [$class->id, $review->id]) }}" data-confirm-title="Xác nhận xóa đánh giá" data-confirm-message="Bạn có chắc chắn muốn xóa đánh giá này? Hành động này không thể hoàn tác.">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="review-delete-button">Xóa đánh giá</button>
