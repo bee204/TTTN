@@ -31,10 +31,12 @@
 							<span class="account-menu__icon"><i class="fa-regular fa-id-card" aria-hidden="true"></i></span>
 							<span><strong>Thông tin tài khoản</strong><small>Xem hồ sơ cá nhân</small></span>
 						</a>
-						<a href="{{ route('registered.classes') }}">
-							<span class="account-menu__icon"><i class="fa-solid fa-person-running" aria-hidden="true"></i></span>
-							<span><strong>Lớp đã đăng ký</strong><small>Lịch học và trạng thái</small></span>
-						</a>
+						@if(Auth::user()->role === 'customer')
+							<a href="{{ route('registered.classes') }}">
+								<span class="account-menu__icon"><i class="fa-solid fa-person-running" aria-hidden="true"></i></span>
+								<span><strong>Lớp đã đăng ký</strong><small>Lịch học và trạng thái</small></span>
+							</a>
+						@endif
 					</div>
 					<form method="POST" action="{{ route('account.logout') }}" class="account-logout">
 						@csrf

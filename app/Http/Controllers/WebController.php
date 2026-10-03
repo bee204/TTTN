@@ -109,6 +109,7 @@ class WebController extends Controller
                     'email' => 'Tài khoản giảng viên/quản trị viên không thể đăng nhập tại user site. Vui lòng sử dụng cổng đăng nhập riêng.',
                 ])->withInput($request->only('email', 'redirect'));
             } else {
+                $this->authenticatedCustomer();
                 $redirect = $request->input('redirect');
                 return $redirect && str_starts_with($redirect, '/')
                     ? redirect($redirect)
@@ -133,9 +134,9 @@ class WebController extends Controller
     {
         abort_unless(Auth::check(), 401);
         $customer = $this->authenticatedCustomer();
-        $customerId = $customer?->id;
+        abort_unless($customer, 403, 'Tài khoản chưa được liên kết với hồ sơ học viên.');
         $registrations = Registration::with(['class.teacher', 'attendances'])
-            ->where('customer_id', $customerId)
+            ->where('customer_id', $customer->id)
             ->whereIn('status', [
                 RegistrationStatus::PENDING->value,
                 RegistrationStatus::CONFIRMED->value,
@@ -165,8 +166,9 @@ class WebController extends Controller
 
     public function registeredClassDetail($id)
     {
-        abort_unless(Auth::check() && Auth::user()->customer_id, 403);
-        $registration = Registration::where('customer_id', Auth::user()->customer_id)
+        $customer = $this->authenticatedCustomer();
+        abort_unless($customer, 403, 'Tài khoản chưa được liên kết với hồ sơ học viên.');
+        $registration = Registration::where('customer_id', $customer->id)
             ->where('class_id', $id)
             ->where('status', RegistrationStatus::CONFIRMED->value)
             ->firstOrFail();
@@ -174,7 +176,7 @@ class WebController extends Controller
         $hasEligibleAttendance = $registration->attendances()
             ->whereIn('status', ['PRESENT', 'LATE'])
             ->exists();
-        $review = ClassReview::where('customer_id', Auth::user()->customer_id)
+        $review = ClassReview::where('customer_id', $customer->id)
             ->where('class_id', $id)
             ->first();
         $submissionDeadline = $class->end_date->copy()->addDays(30)->endOfDay();
@@ -192,14 +194,15 @@ class WebController extends Controller
 
     public function submitClassReview(Request $request, $id)
     {
-        abort_unless(Auth::check() && Auth::user()->customer_id, 403);
+        $customer = $this->authenticatedCustomer();
+        abort_unless($customer, 403, 'Tài khoản chưa được liên kết với hồ sơ học viên.');
         $data = $request->validate([
             'rating' => ['required', 'integer', 'between:1,5'],
             'comment' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $registration = Registration::with('class')
-            ->where('customer_id', Auth::user()->customer_id)
+            ->where('customer_id', $customer->id)
             ->where('class_id', $id)
             ->where('status', RegistrationStatus::CONFIRMED->value)
             ->firstOrFail();
@@ -210,12 +213,12 @@ class WebController extends Controller
         if (now()->gt($registration->class->end_date->copy()->addDays(30)->endOfDay())) {
             return back()->with('error', 'Đã hết thời hạn gửi đánh giá cho lớp học này.');
         }
-        if (ClassReview::where('customer_id', Auth::user()->customer_id)->where('class_id', $id)->exists()) {
+        if (ClassReview::where('customer_id', $customer->id)->where('class_id', $id)->exists()) {
             return back()->with('error', 'Bạn đã có đánh giá cho lớp này. Hãy dùng chức năng sửa đánh giá.');
         }
 
         ClassReview::create([
-            'customer_id' => Auth::user()->customer_id,
+            'customer_id' => $customer->id,
             'class_id' => $id,
             ...$data,
         ]);
@@ -225,13 +228,14 @@ class WebController extends Controller
 
     public function updateClassReview(Request $request, $id)
     {
-        abort_unless(Auth::check() && Auth::user()->customer_id, 403);
+        $customer = $this->authenticatedCustomer();
+        abort_unless($customer, 403, 'Tài khoản chưa được liên kết với hồ sơ học viên.');
         $data = $request->validate([
             'rating' => ['required', 'integer', 'between:1,5'],
             'comment' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $registration = Registration::where('customer_id', Auth::user()->customer_id)
+        $registration = Registration::where('customer_id', $customer->id)
             ->where('class_id', $id)
             ->where('status', RegistrationStatus::CONFIRMED->value)
             ->firstOrFail();
@@ -239,7 +243,7 @@ class WebController extends Controller
             return back()->with('error', 'Bạn cần điểm danh có mặt hoặc đi muộn ít nhất một buổi trước khi sửa đánh giá.');
         }
 
-        $review = ClassReview::where('customer_id', Auth::user()->customer_id)
+        $review = ClassReview::where('customer_id', $customer->id)
             ->where('class_id', $id)
             ->firstOrFail();
         if (now()->gt($review->created_at->copy()->addDays(7))) {
@@ -253,14 +257,15 @@ class WebController extends Controller
 
     public function deleteClassReview(Request $request, $id)
     {
-        abort_unless(Auth::check() && Auth::user()->customer_id, 403);
+        $customer = $this->authenticatedCustomer();
+        abort_unless($customer, 403, 'Tài khoản chưa được liên kết với hồ sơ học viên.');
 
-        Registration::where('customer_id', Auth::user()->customer_id)
+        Registration::where('customer_id', $customer->id)
             ->where('class_id', $id)
             ->where('status', RegistrationStatus::CONFIRMED->value)
             ->firstOrFail();
 
-        $review = ClassReview::where('customer_id', Auth::user()->customer_id)
+        $review = ClassReview::where('customer_id', $customer->id)
             ->where('class_id', $id)
             ->firstOrFail();
         if (now()->gt($review->created_at->copy()->addDays(7))) {

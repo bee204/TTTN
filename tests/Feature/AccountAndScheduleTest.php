@@ -269,6 +269,40 @@ class AccountAndScheduleTest extends TestCase
         $this->assertNotNull($user->fresh()->customer_id);
     }
 
+    public function test_customer_with_missing_customer_link_can_open_registered_classes_and_review_page(): void
+    {
+        $customer = Customer::factory()->create(['email' => 'review-link@example.com']);
+        $user = User::factory()->create([
+            'role' => 'customer',
+            'email' => $customer->email,
+            'customer_id' => null,
+        ]);
+        $class = YogaClass::factory()->create([
+            'start_date' => now()->subDay()->toDateString(),
+            'end_date' => now()->addDays(10)->toDateString(),
+        ]);
+        $registration = $this->confirmedRegistration($customer, $class);
+        $registration->attendances()->create([
+            'attendance_date' => now()->toDateString(),
+            'status' => 'PRESENT',
+        ]);
+
+        $this->actingAs($user)->post(route('registered.class.review', $class->id), [
+            'rating' => 5,
+            'comment' => 'Danh gia sau khi tu lien ket customer.',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->actingAs($user)->get(route('registered.class.detail', $class->id))
+            ->assertOk()
+            ->assertSee('Sửa đánh giá');
+
+        $this->actingAs($user)->get(route('registered.classes'))
+            ->assertOk()
+            ->assertSee($class->name);
+
+        $this->assertSame($customer->id, $user->fresh()->customer_id);
+    }
+
     public function test_cancelled_registration_can_be_submitted_again_for_the_same_class(): void
     {
         $customer = Customer::factory()->create();
