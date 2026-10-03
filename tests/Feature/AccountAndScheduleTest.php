@@ -410,6 +410,23 @@ class AccountAndScheduleTest extends TestCase
             ->assertOk()
             ->assertSee('/teacher');
 
+        $this->actingAs($teacherUser)->post(route('teacher.registrations.attendance.store', $ownedRegistration->id), [
+            'attendance_date' => now()->toDateString(),
+            'status' => 'LATE',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('attendances', [
+            'registration_id' => $ownedRegistration->id,
+            'attendance_date' => now()->toDateString(),
+            'status' => 'LATE',
+        ]);
+
+        $this->actingAs($teacherUser)->get('/teacher/classes/'.$ownedClass->id.'/attendance')
+            ->assertOk()
+            ->assertSee('disabled', false)
+            ->assertSee('Đã điểm danh')
+            ->assertSee('value="LATE" selected', false);
+
         $this->actingAs($teacherUser, 'sanctum')->postJson('/api/attendance', [
             'registration_id' => $ownedRegistration->id,
             'attendance_date' => $ownedClass->start_date->format('Y-m-d'),
